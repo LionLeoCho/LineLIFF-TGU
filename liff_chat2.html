@@ -200,7 +200,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithCustomToken, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, onSnapshot }
+import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* =====================================================================
@@ -246,6 +246,8 @@ const state = {
   unsub: null,           // Firestore 訂閱取消函式
   rooms: [],             // GET /rooms 回傳
   subscribedRoomId: null,// 目前訂閱中的 room
+  presenceRoomId: null,  // 目前在寫 presence 的 room
+  presenceTimer: null,   // 心跳計時器
 };
 
 /* ---------- Firebase 初始化 ---------- */
@@ -283,7 +285,8 @@ function authHeaders(){
 
 /* ---------- 小工具 ---------- */
 const $ = (id) => document.getElementById(id);
-function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); if(id==='s-group') subscribeGroup(); if(id==='s-list' && state.bound) loadRooms(); }
+function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); if(id==='s-group') subscribeGroup(); if(id==='s-list' && state.bound){ leaveRoom(); loadRooms(); } }
+function leaveRoom(){ if(state.unsub){ state.unsub(); state.unsub=null; } state.subscribedRoomId=null; stopPresence(); }
 function setStep(k, status){ // status: run|ok|warn
   const el = document.querySelector(`.step[data-k="${k}"]`);
   if(!el) return; el.classList.remove('run','ok','warn'); if(status) el.classList.add(status);
@@ -507,7 +510,44 @@ function subscribeGroup(){
   state.unsub = onSnapshot(qy,
     (snap) => renderMessages(snap.docs.map(d => d.data())),
     (err) => console.error('Firestore 訂閱失敗：', err));
+  startPresence(roomId);                        // 進房 → 寫 presence
 }
+
+/* ---------- Presence（線上狀態 + 心跳）----------
+ * 前端進房寫 rooms/{roomId}/presence/{participantId} = { online, lastActiveAt }，
+ * 定時心跳更新 lastActiveAt；離房 / 切到背景 → online:false。
+ * 後端推播前查這裡判斷「離線才推」。rules 已允許本人寫自己那筆。 */
+const HEARTBEAT_MS = 25000;
+
+async function writePresence(roomId, online){
+  if(!fbDb || !state.participantId || !roomId) return;
+  try{
+    await setDoc(doc(fbDb, 'rooms', roomId, 'presence', state.participantId),
+      { online, lastActiveAt: serverTimestamp() });
+  }catch(e){ console.warn('presence 寫入失敗：', e); }
+}
+
+function startPresence(roomId){
+  if(state.presenceRoomId && state.presenceRoomId !== roomId) stopPresence(); // 切房先收掉舊的
+  state.presenceRoomId = roomId;
+  writePresence(roomId, true);
+  clearInterval(state.presenceTimer);
+  state.presenceTimer = setInterval(() => writePresence(roomId, true), HEARTBEAT_MS);
+}
+
+function stopPresence(){
+  clearInterval(state.presenceTimer); state.presenceTimer = null;
+  if(state.presenceRoomId) writePresence(state.presenceRoomId, false);
+  state.presenceRoomId = null;
+}
+
+// 切到背景 / 關頁 → 標離線；回前景 → 恢復心跳
+document.addEventListener('visibilitychange', () => {
+  if(!state.presenceRoomId) return;
+  if(document.hidden){ clearInterval(state.presenceTimer); writePresence(state.presenceRoomId, false); }
+  else startPresence(state.presenceRoomId);
+});
+window.addEventListener('pagehide', () => { if(state.presenceRoomId) writePresence(state.presenceRoomId, false); });
 
 function renderMessages(list){
   const box = $('groupMsgs');
