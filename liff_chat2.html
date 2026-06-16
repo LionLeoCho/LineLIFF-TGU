@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>出團聊天室</title>
+
+<!-- LINE LIFF SDK（官方 CDN） -->
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+  :root{
+    --bg:#f4f4f2; --paper:#fff; --topbar:#faf9f6; --ink:#2c2c2a; --sub:#888;
+    --line:#eee; --line2:#f0efe9; --blue:#185fa5; --blueBg:#e6f1fb; --blueLine:#b5d4f4;
+    --green:#1d9e75; --greenBg:#e1f5ee; --badge:#e24b4a;
+    --errBg:#fcebeb; --errLine:#f7c1c1; --errInk:#a32d2d;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif; color:var(--ink);
+    background:var(--bg); -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; max-width:480px; margin:0 auto;
+  }
+  .screen{flex:1; display:none; flex-direction:column; min-height:0}
+  .screen.active{display:flex}
+
+  .topbar{display:flex; align-items:center; gap:10px; padding:14px 14px;
+    border-bottom:1px solid var(--line); background:var(--topbar); flex-shrink:0}
+  .topbar .back{font-size:20px; color:var(--sub); cursor:pointer; line-height:1}
+  .topbar h1{font-size:15px; font-weight:600; margin:0}
+  .topbar .sub{font-size:11px; color:#999}
+
+  .pad{padding:28px 22px}
+  .btn{background:var(--blue); color:#fff; text-align:center; border-radius:10px;
+    padding:13px; font-size:15px; font-weight:600; cursor:pointer; border:none; width:100%}
+  .btn.green{background:var(--green)}
+  .btn:active{opacity:.85}
+  .center{text-align:center}
+  .muted{color:var(--sub)}
+  .field-label{font-size:13px; color:#5f5e5a; margin-bottom:6px}
+  input{width:100%; border:1px solid #d3d1c7; border-radius:10px; padding:11px 13px;
+    font-size:14px; outline:none; background:#fff; font-family:inherit; margin-bottom:16px}
+
+  /* LIFF 狀態面板 */
+  .boot{flex:1; display:flex; flex-direction:column; justify-content:center; padding:30px 26px; background:var(--bg)}
+  .spinner{width:42px;height:42px;border:3px solid var(--blueLine);border-top-color:var(--blue);
+    border-radius:50%;margin:0 auto 20px;animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .steps{background:#fff;border:1px solid #e3e1da;border-radius:12px;padding:6px 0;margin-top:8px}
+  .step{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#999;
+    border-top:1px solid var(--line2)}
+  .step:first-child{border-top:none}
+  .step .dot{width:16px;height:16px;border-radius:50%;border:2px solid #d6d4ca;flex-shrink:0}
+  .step.ok{color:var(--ink)} .step.ok .dot{background:var(--green);border-color:var(--green)}
+  .step.ok .dot::after{content:'✓';color:#fff;font-size:10px;display:block;text-align:center;line-height:12px}
+  .step.run .dot{border-color:var(--blue);border-top-color:transparent;animation:spin .8s linear infinite}
+  .step.warn{color:var(--errInk)} .step.warn .dot{background:#e8a23d;border-color:#e8a23d}
+
+  .profile{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e3e1da;
+    border-radius:12px;padding:12px 14px;margin-top:14px}
+  .profile img,.profile .ph{width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;
+    background:var(--blueBg);display:grid;place-items:center;font-size:22px}
+  .pill{display:inline-block;font-size:10px;border-radius:5px;padding:1px 7px;margin-left:6px;vertical-align:middle}
+  .pill.demo{background:#fbe8cf;color:#9a6a13}
+  .pill.live{background:var(--greenBg);color:#0f6e56}
+
+  .error-box{background:var(--errBg);border:1px solid var(--errLine);border-radius:8px;
+    padding:8px 11px;font-size:12px;color:var(--errInk);line-height:1.5;margin:12px 0}
+  .hint{margin-top:22px;padding:12px;background:var(--bg);border-radius:10px;font-size:11.5px;color:#888;line-height:1.7}
+
+  /* list */
+  .row{display:flex;align-items:center;gap:11px;padding:13px 15px;border-bottom:1px solid var(--line2);cursor:pointer}
+  .ava{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+  .grow{flex:1;min-width:0}
+  .name{font-size:14px;font-weight:600}
+  .preview{font-size:12px;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tag{font-size:10px;border-radius:4px;padding:1px 5px;margin-left:5px}
+  .unread{display:inline-block;margin-top:3px;background:var(--badge);color:#fff;font-size:10px;
+    min-width:17px;height:17px;line-height:17px;text-align:center;border-radius:9px;padding:0 4px}
+
+  /* chat */
+  .msgs{flex:1;overflow-y:auto;padding:14px 12px;background:var(--bg);display:flex;flex-direction:column;gap:13px}
+  .daychip{text-align:center}.daychip span{font-size:11px;color:#999;background:#e8e7e2;padding:3px 10px;border-radius:8px}
+  .announce{border:1px solid var(--blueLine);background:var(--blueBg);border-radius:12px;padding:9px 11px}
+  .announce .hd{font-size:12px;font-weight:600;color:var(--blue);margin-bottom:3px}
+  .bubble-them{display:flex;gap:7px;align-items:flex-start}
+  .bubble-them .sender{font-size:11px;color:#888;margin-bottom:2px}
+  .bubble-them .body{background:#fff;border-radius:12px;padding:8px 11px;font-size:13px;line-height:1.45;max-width:230px}
+  .mine{display:flex;flex-direction:column;align-items:flex-end}
+  .mine .body{background:var(--blue);color:#fff;border-radius:12px;padding:8px 11px;font-size:13px;line-height:1.45;max-width:230px}
+  .time{font-size:10px;color:#999;margin-top:2px}
+  .at{color:var(--blue);font-weight:600}
+  .imgbox{width:150px;height:100px;border-radius:8px;background:#dcdbd4;display:grid;place-items:center;font-size:28px}
+  .loc{background:#fff;border:1px solid #e3e1da;border-radius:12px;padding:7px;margin-top:4px;display:flex;align-items:center;gap:8px}
+  .loc .pin{width:50px;height:50px;border-radius:8px;background:var(--blueBg);display:grid;place-items:center;font-size:22px}
+  .pinbar{background:var(--blueBg);border-bottom:1px solid #d6e6f7;padding:9px 13px}
+  .composer{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--line);background:var(--topbar)}
+  .composer .ic{font-size:20px;color:var(--sub);cursor:pointer}
+  .composer input{margin:0;border-radius:18px;padding:9px 14px}
+  .send{width:34px;height:34px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff;cursor:pointer;flex-shrink:0;font-size:16px}
+</style>
+</head>
+<body>
+
+<!-- ============ 0. LIFF 啟動 / 狀態 ============ -->
+<section id="s-boot" class="screen active">
+  <div class="boot">
+    <div class="spinner" id="bootSpin"></div>
+    <div class="center" style="font-size:16px;font-weight:600">啟動聊天室</div>
+    <div class="steps" id="steps">
+      <div class="step" data-k="init"><div class="dot"></div>LIFF 初始化</div>
+      <div class="step" data-k="login"><div class="dot"></div>確認登入狀態</div>
+      <div class="step" data-k="profile"><div class="dot"></div>取得 LINE 個人資料</div>
+      <div class="step" data-k="friend"><div class="dot"></div>檢查官方帳號好友</div>
+    </div>
+    <div id="bootProfile"></div>
+    <div id="bootMsg" class="hint" style="display:none"></div>
+  </div>
+</section>
+
+<!-- ============ A. 加好友門檻 ============ -->
+<section id="s-oa" class="screen">
+  <div class="topbar"><h1 id="oaTitle">出團聊天室</h1></div>
+  <div class="pad center" style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--greenBg);display:grid;place-items:center;margin:0 auto 18px;font-size:30px">💬</div>
+    <div style="font-size:17px;font-weight:600;margin-bottom:6px">加入官方帳號好友</div>
+    <div class="muted" style="font-size:13px;line-height:1.7;margin-bottom:24px">
+      為了能即時收到導領公告與新訊息提醒，<br>請先加入官方帳號好友才能進入聊天室。</div>
+    <button class="btn green" id="oaBtn">加好友並繼續</button>
+  </div>
+</section>
+
+<!-- ============ B. 姓名 + 生日綁定 ============ -->
+<section id="s-bind" class="screen">
+  <div class="topbar"><h1 id="bindTitle">出團聊天室</h1></div>
+  <div class="pad" style="flex:1;overflow-y:auto;background:var(--paper)">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--blueBg);display:grid;place-items:center;margin:0 auto 16px;font-size:26px">👤</div>
+    <div class="center" style="font-size:17px;font-weight:600;margin-bottom:4px">驗證身分</div>
+    <div class="center muted" style="font-size:13px;line-height:1.6;margin-bottom:8px">
+      請輸入您報名時的姓名與生日，以加入此團聊天室</div>
+    <div class="center muted" id="bindWho" style="font-size:11.5px;margin-bottom:22px"></div>
+
+    <div class="field-label">姓名</div>
+    <input id="inName" placeholder="請輸入姓名" />
+    <div class="field-label">生日</div>
+    <input id="inBirth" type="date" />
+
+    <div class="error-box" id="bindErr" style="display:none">
+      ⚠ 名單中找不到符合的資料，請確認姓名與生日，或聯絡導領協助。</div>
+
+    <button class="btn" id="bindBtn" style="margin-top:8px">加入聊天室</button>
+    <div class="center" style="margin-top:16px"><span style="font-size:13px;color:var(--blue)">遇到問題？聯絡導領 ›</span></div>
+
+    <div class="hint">
+      <b style="color:#666">Demo 可用資料</b><br>
+      陳小華 / 1990-03-15　·　王大明 / 1985-07-22　·　林美麗 / 1992-11-08
+    </div>
+  </div>
+</section>
+
+<!-- ============ C. 聊天室列表 ============ -->
+<section id="s-list" class="screen">
+  <div class="topbar">
+    <div class="grow"><h1>東京五日遊</h1><div class="sub">5/12 – 5/16 · 進行中</div></div>
+    <span class="back" style="font-size:18px">⚙</span>
+  </div>
+  <div style="flex:1;overflow-y:auto;background:var(--paper)">
+    <div class="row" style="background:#fbfaf7" onclick="go('s-group')">
+      <div class="ava" style="background:var(--greenBg)">👥</div>
+      <div class="grow"><div><span class="name">整團群聊</span><span class="tag" style="color:var(--green);background:var(--greenBg)">全團</span></div>
+        <div class="preview">導遊 小林：明早集合改 07:30…</div></div>
+      <div style="text-align:right"><div class="time">09:12</div><div class="unread">3</div></div>
+    </div>
+    <div class="row" onclick="go('s-group')">
+      <div class="ava" style="background:var(--blueBg)">🧑‍✈️</div>
+      <div class="grow"><div><span class="name">導遊 小林</span><span class="tag" style="color:var(--blue);background:var(--blueBg)">導領</span></div>
+        <div class="preview">好的，幫您留意，沒問題！</div></div>
+      <div style="text-align:right"><div class="time">昨天</div></div>
+    </div>
+    <div id="meRow" class="hint" style="margin:14px 18px"></div>
+  </div>
+</section>
+
+<!-- ============ D. 群聊 ============ -->
+<section id="s-group" class="screen">
+  <div class="topbar"><span class="back" onclick="go('s-list')">‹</span>
+    <div class="grow"><h1>東京五日遊</h1><div class="sub">整團群聊 · 18 人</div></div><span>👥</span></div>
+  <div class="pinbar">
+    <div style="display:flex;align-items:center;gap:5px"><span style="font-size:11px">📌</span>
+      <span style="font-size:11px;font-weight:600;color:var(--blue)">置頂公告 · 1/3</span></div>
+    <div style="font-size:12px;line-height:1.5;margin-top:3px">明早集合改 <b>07:30</b> 飯店大廳，請勿遲到</div>
+  </div>
+  <div class="msgs" id="groupMsgs">
+    <div class="daychip"><span>今天</span></div>
+    <div class="announce"><div class="hd">📢 導遊 小林 · 公告</div>
+      <div style="font-size:13px;line-height:1.5">明早集合改 07:30 飯店大廳，請勿遲到</div>
+      <div class="time">09:12</div></div>
+    <div class="bubble-them"><div class="ava" style="width:28px;height:28px;font-size:14px;background:#e8e7e2">👤</div>
+      <div><div class="sender">王大明</div><div class="body">收到！請問早餐有提供嗎？</div><div class="time">09:15</div></div></div>
+  </div>
+  <div class="composer">
+    <span class="ic" onclick="sendImg()">🖼️</span>
+    <span class="ic" onclick="sendLoc()">📍</span>
+    <input id="groupInput" placeholder="輸入訊息…" onkeydown="if(event.key==='Enter')sendText()" />
+    <div class="send" onclick="sendText()">➤</div>
+  </div>
+</section>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithCustomToken, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, query, orderBy, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* =====================================================================
+ *  設定 — 部署前填入
+ * ===================================================================== */
+const CONFIG = {
+  LIFF_ID: "2010403729-sYBHXgfp",                       // 填 LIFF ID；留空 = Demo 模式（LINE 身分用假的）
+  OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-sYBHXgfp",
+  BACKEND: "https://localhost:53342", // ← .NET 後端 base URL（內網測試填那台位址）
+  DEBUG_USER_ID: "Utest001",         // Demo 模式打後端用的 X-Debug-UserId（對應 DevAuthHandler）
+
+  // Firebase web config（專案設定 → 一般 → 你的應用程式 → </>）
+  FIREBASE: {
+    apiKey: "AIzaSyCMizlWjgfKCA8ljvyEPeNCqAC_Vr7FGec",
+    authDomain: "tguliff.firebaseapp.com",
+    projectId: "tguliff",
+    storageBucket: "tguliff.firebasestorage.app",
+    messagingSenderId: "978105065420",
+    appId: "1:978105065420:web:b228e2bb3bc7148cc70769",
+	measurementId: "G-P5184JQKRQ"
+  },
+  FIRESTORE_DB: "default",           // 你的具名資料庫（非 "(default)"）
+  ROOM_ID: "1682a511-3198-4bd1-ad8c-e03cf17ef923",                       // ← 先貼 seed 回傳的 groupRoomId；之後由 GET /rooms 取代
+};
+
+/* 假名單（純離線 demo 用；接後端後走後端比對） */
+const ROSTER = [
+  { passengerId:"P001", name:"陳小華", birth:"1990-03-15" },
+  { passengerId:"P002", name:"王大明", birth:"1985-07-22" },
+  { passengerId:"P003", name:"林美麗", birth:"1992-11-08" },
+];
+
+const state = {
+  demo: false,
+  profile: null,
+  accessToken: null,
+  isFriend: null,
+  tourId: null,
+  roomId: null,
+  bound: false,
+  participantId: null,   // 後端 /bind 回傳
+  firebaseToken: null,   // custom token
+  unsub: null,           // Firestore 訂閱取消函式
+};
+
+/* ---------- Firebase 初始化 ---------- */
+let fbApp = null, fbAuth = null, fbDb = null;
+function initFirebase(){
+  if(fbApp || !CONFIG.FIREBASE.apiKey) return;
+  fbApp = initializeApp(CONFIG.FIREBASE);
+  fbAuth = getAuth(fbApp);
+  fbDb = getFirestore(fbApp, CONFIG.FIRESTORE_DB);  // 指定具名資料庫
+
+  // §I-1 防斷線兜底：掉登入時自動重拿 token 重登
+  onAuthStateChanged(fbAuth, async (user) => {
+    if(!user && state.firebaseToken && state.participantId){
+      try{ await signInWithCustomToken(fbAuth, state.firebaseToken); }
+      catch(e){ console.warn('重新登入 Firebase 失敗：', e); }
+    }
+  });
+}
+
+// 用後端回的 custom token 登入 Firebase
+async function fbSignIn(token){
+  initFirebase();
+  if(!fbAuth){ console.warn('Firebase 未設定（CONFIG.FIREBASE.apiKey 留空）'); return false; }
+  state.firebaseToken = token;
+  await signInWithCustomToken(fbAuth, token);
+  return true;
+}
+
+// 送後端的認證 header：Demo 用 X-Debug-UserId，正式用 Bearer
+function authHeaders(){
+  return state.demo
+    ? { 'X-Debug-UserId': CONFIG.DEBUG_USER_ID }
+    : { 'Authorization': `Bearer ${state.accessToken}` };
+}
+
+/* ---------- 小工具 ---------- */
+const $ = (id) => document.getElementById(id);
+function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); if(id==='s-group') subscribeGroup(); }
+function setStep(k, status){ // status: run|ok|warn
+  const el = document.querySelector(`.step[data-k="${k}"]`);
+  if(!el) return; el.classList.remove('run','ok','warn'); if(status) el.classList.add(status);
+}
+function bootMsg(html){ const m=$('bootMsg'); m.style.display='block'; m.innerHTML=html; }
+const nowT = () => new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false});
+
+/* =====================================================================
+ *  LIFF 啟動流程（真的 SDK 呼叫 + Demo fallback）
+ * ===================================================================== */
+async function bootstrap(){
+  // 讀深連結參數（推播帶 tourId / roomId）
+  const q = new URLSearchParams(location.search);
+  state.tourId = q.get('tourId') || 'demo-tour';
+  state.roomId = q.get('roomId') || null;
+
+  // 沒填 LIFF_ID 或環境沒有 SDK → 直接 Demo
+  if(!CONFIG.LIFF_ID || typeof liff === 'undefined'){
+    return enterDemo(!CONFIG.LIFF_ID ? '尚未填入 LIFF_ID' : 'LIFF SDK 未載入（可能在沙盒/離線環境）');
+  }
+
+  try{
+    // 1) init
+    setStep('init','run');
+    await liff.init({ liffId: CONFIG.LIFF_ID });
+    setStep('init','ok');
+
+    // 2) 登入（未登入則導去 LINE 登入，回來後重跑 bootstrap）
+    setStep('login','run');
+    if(!liff.isLoggedIn()){
+      liff.login({ redirectUri: location.href });
+      return; // 頁面即將跳轉
+    }
+    setStep('login','ok');
+    state.accessToken = liff.getAccessToken();
+
+    // 3) profile
+    setStep('profile','run');
+    const p = await liff.getProfile();
+    state.profile = { userId:p.userId, displayName:p.displayName, pictureUrl:p.pictureUrl };
+    setStep('profile','ok');
+    renderProfile();
+
+    // 4) 好友狀態（OA 門檻）— 部分情境不支援，失敗就放行並提示
+    setStep('friend','run');
+    try{
+      const f = await liff.getFriendship();   // { friendFlag }
+      state.isFriend = !!f.friendFlag;
+      setStep('friend', state.isFriend ? 'ok' : 'warn');
+    }catch(e){
+      state.isFriend = null;
+      setStep('friend','warn');
+      console.warn('getFriendship 失敗：', e);
+    }
+
+    afterBoot();
+  }catch(err){
+    console.error('LIFF init 失敗：', err);
+    enterDemo('LIFF 初始化失敗：' + (err && err.message ? err.message : err));
+  }
+}
+
+function enterDemo(reason){
+  state.demo = true;
+  setStep('init','ok'); setStep('login','ok'); setStep('profile','ok'); setStep('friend','warn');
+  state.profile = { userId:'Udemo000000', displayName:'陳小華', pictureUrl:null };
+  state.accessToken = null;
+  state.isFriend = false;
+  renderProfile();
+  bootMsg('<b style="color:#9a6a13">Demo 模式</b>　'+reason+'。<br>畫面照常運作，但 LINE 身分為假資料。'+
+          '部署到 HTTPS、填入 LIFF_ID，並在 LINE 內開啟即進入正式模式。');
+  afterBoot();
+}
+
+function renderProfile(){
+  const p = state.profile, tag = state.demo
+    ? '<span class="pill demo">DEMO</span>' : '<span class="pill live">LINE 已登入</span>';
+  const ava = p.pictureUrl ? `<img src="${p.pictureUrl}" alt="">` : `<div class="ph">👤</div>`;
+  $('bootProfile').innerHTML =
+    `<div class="profile">${ava}<div><div style="font-size:15px;font-weight:600">${p.displayName}${tag}</div>
+     <div class="muted" style="font-size:11.5px;margin-top:2px">userId：${p.userId.slice(0,10)}…</div></div></div>`;
+}
+
+/* 啟動完成後路由：好友門檻 → 已綁直接進房 → 否則綁定 */
+function afterBoot(){
+  $('bootSpin').style.display='none';
+  setTimeout(()=>{
+    if(state.isFriend === false){ go('s-oa'); return; }
+    // 已綁判斷：正式模式會打後端 GET /me；這裡 demo 一律當未綁
+    prepBind();
+    go('s-bind');
+  }, state.demo ? 1100 : 600);
+}
+
+/* OA 加好友：正式模式開官方帳號加友頁，回來重檢；demo 直接放行 */
+$('oaBtn').addEventListener('click', ()=>{
+  if(state.demo || !CONFIG.LIFF_ID){ state.isFriend = true; prepBind(); go('s-bind'); return; }
+  // 在 LINE 內可用 openWindow 開加友頁；外部瀏覽器則一般導頁
+  if(typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()){
+    liff.openWindow({ url: CONFIG.OA_ADD_FRIEND_URL, external:false });
+  }else{
+    window.open(CONFIG.OA_ADD_FRIEND_URL, '_blank');
+  }
+  // 提示使用者加完返回；實務上返回後重打 getFriendship 再放行
+  setTimeout(()=>{ prepBind(); go('s-bind'); }, 300);
+});
+
+/* =====================================================================
+ *  綁定（姓名 + 生日）
+ * ===================================================================== */
+function prepBind(){
+  $('bindWho').textContent = `LINE 身分：${state.profile.displayName}`;
+}
+
+$('bindBtn').addEventListener('click', async ()=>{
+  const name = $('inName').value.trim();
+  const birth = $('inBirth').value;
+  if(!name || !birth){ showBindErr(); return; }
+
+  if(CONFIG.BACKEND){
+    // 打後端 /bind（Demo 模式用 X-Debug-UserId；正式用 Bearer）
+    try{
+      const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/bind`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', ...authHeaders() },
+        body: JSON.stringify({ fullName:name, birthDate:birth }),
+      });
+      if(!r.ok){ showBindErr(); return; }
+      const data = await r.json();              // { participantId, displayName, firebaseToken }
+      state.participantId = data.participantId;
+      // 用 custom token 登入 Firebase → 才能訂閱 Firestore
+      await fbSignIn(data.firebaseToken);
+    }catch(e){ console.error(e); showBindErr(); return; }
+  }else{
+    // 無後端：純離線 demo，本地名單比對（不會有即時訂閱）
+    if(!ROSTER.some(p => p.name===name && p.birth===birth)){ showBindErr(); return; }
+  }
+
+  state.bound = true; $('bindErr').style.display='none'; enterList();
+});
+function showBindErr(){ $('bindErr').style.display='block'; }
+
+function enterList(){
+  $('meRow').innerHTML = `登入身分：<b style="color:#777">${$('inName').value.trim()||state.profile.displayName}</b>`
+    + ` · 東京五日遊團員` + (state.demo ? '　<span class="pill demo">DEMO</span>' : '');
+  go('s-list');
+}
+
+/* =====================================================================
+ *  群聊：訂閱 Firestore 即時顯示 + 發訊走後端
+ * ===================================================================== */
+const esc = (s) => String(s ?? '').replace(/</g,'&lt;');
+function fmtTime(ts){
+  try{ const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',hour12:false}); }
+  catch{ return ''; }
+}
+
+// 進群聊時開訂閱（只訂一次）
+function subscribeGroup(){
+  if(state.unsub) return;                         // 已訂閱
+  if(!fbDb || !CONFIG.ROOM_ID){                   // 沒設 Firebase / room → 維持靜態示意
+    return;
+  }
+  const roomId = state.roomId || CONFIG.ROOM_ID;
+  const qy = query(collection(fbDb, 'rooms', roomId, 'messages'), orderBy('createdAt'));
+  state.unsub = onSnapshot(qy,
+    (snap) => renderMessages(snap.docs.map(d => d.data())),
+    (err) => console.error('Firestore 訂閱失敗：', err));
+}
+
+function renderMessages(list){
+  const box = $('groupMsgs');
+  box.innerHTML = '<div class="daychip"><span>今天</span></div>';  // 即時模式：清掉靜態示意
+  for(const m of list) box.appendChild(m.senderParticipantId === state.participantId ? mineEl(m) : theirEl(m));
+  box.scrollTop = box.scrollHeight;
+}
+
+function bodyHtml(m){
+  if(m.type === 1) // image：content = URL
+    return `<div class="body" style="padding:5px"><img src="${esc(m.content)}" style="max-width:150px;border-radius:8px;display:block"></div>`;
+  if(m.type === 2){ // location：content = JSON{lat,lng,address}
+    let addr=''; try{ addr = JSON.parse(m.content).address || ''; }catch{}
+    return `<div class="loc"><div class="pin">📍</div><div><div style="font-size:12px;font-weight:600">分享了位置</div><div style="font-size:11px;color:#999">${esc(addr)}</div></div></div>`;
+  }
+  const safe = esc(m.content).replace(/(@\S+)/g,'<span class="at">$1</span>');
+  return `<div class="body">${safe}</div>`;
+}
+function theirEl(m){
+  const el = document.createElement('div'); el.className='bubble-them';
+  el.innerHTML = `<div class="ava" style="width:28px;height:28px;font-size:14px;background:#e8e7e2">👤</div>`
+    + `<div><div class="sender">${esc(m.senderName)}</div>${bodyHtml(m)}<div class="time">${fmtTime(m.createdAt)}</div></div>`;
+  return el;
+}
+function mineEl(m){
+  const el = document.createElement('div'); el.className='mine';
+  el.innerHTML = `${bodyHtml(m)}<div class="time">已送出 · ${fmtTime(m.createdAt)}</div>`;
+  return el;
+}
+
+// 發訊：POST 後端 → 後端寫 Firestore → onSnapshot 自動把它畫出來（不做樂觀更新，才驗得到真實往返）
+async function postMessage(type, content){
+  if(!CONFIG.BACKEND || !CONFIG.ROOM_ID){ return localAppend(type, content); } // 純離線 demo
+  const roomId = state.roomId || CONFIG.ROOM_ID;
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/rooms/${roomId}/messages`, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ type, content }),
+    });
+    if(!r.ok) console.error('發訊失敗', r.status, await r.text());
+  }catch(e){ console.error(e); }
+}
+function localAppend(type, content){
+  const box=$('groupMsgs'); const el=document.createElement('div'); el.className='mine';
+  const inner = type===1 ? `<div class="imgbox">🖼️</div>`
+    : type===2 ? `<div class="loc"><div class="pin">📍</div><div><div style="font-size:12px;font-weight:600">分享了位置</div></div></div>`
+    : `<div class="body">${esc(content)}</div>`;
+  el.innerHTML = inner + `<div class="time">已送出 · ${nowT()}</div>`;
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+
+function sendText(){ const v=$('groupInput').value.trim(); if(!v) return; $('groupInput').value=''; postMessage(0, v); }
+function sendImg(){ postMessage(1, 'https://picsum.photos/300/200'); }
+function sendLoc(){ postMessage(2, JSON.stringify({ lat:35.6896, lng:139.6917, address:'新宿區西新宿2丁目' })); }
+
+/* go */
+window.go = go;
+window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
+
+/* 啟動 */
+bootstrap();
+</script>
+</body>
+</html>
