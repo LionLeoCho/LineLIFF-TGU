@@ -166,18 +166,7 @@
     <span class="back" style="font-size:18px">⚙</span>
   </div>
   <div style="flex:1;overflow-y:auto;background:var(--paper)">
-    <div class="row" style="background:#fbfaf7" onclick="go('s-group')">
-      <div class="ava" style="background:var(--greenBg)">👥</div>
-      <div class="grow"><div><span class="name">整團群聊</span><span class="tag" style="color:var(--green);background:var(--greenBg)">全團</span></div>
-        <div class="preview">導遊 小林：明早集合改 07:30…</div></div>
-      <div style="text-align:right"><div class="time">09:12</div><div class="unread">3</div></div>
-    </div>
-    <div class="row" onclick="go('s-group')">
-      <div class="ava" style="background:var(--blueBg)">🧑‍✈️</div>
-      <div class="grow"><div><span class="name">導遊 小林</span><span class="tag" style="color:var(--blue);background:var(--blueBg)">導領</span></div>
-        <div class="preview">好的，幫您留意，沒問題！</div></div>
-      <div style="text-align:right"><div class="time">昨天</div></div>
-    </div>
+    <div id="roomList"></div>
     <div id="meRow" class="hint" style="margin:14px 18px"></div>
   </div>
 </section>
@@ -218,7 +207,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot }
  *  設定 — 部署前填入
  * ===================================================================== */
 const CONFIG = {
-  LIFF_ID: "",                       // 填 LIFF ID；留空 = Demo 模式（LINE 身分用假的）
+  LIFF_ID: "",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-sYBHXgfp
   OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-sYBHXgfp",
   BACKEND: "https://localhost:53342", // ← .NET 後端 base URL（內網測試填那台位址）
   DEBUG_USER_ID: "Utest001",         // Demo 模式打後端用的 X-Debug-UserId（對應 DevAuthHandler）
@@ -255,6 +244,8 @@ const state = {
   participantId: null,   // 後端 /bind 回傳
   firebaseToken: null,   // custom token
   unsub: null,           // Firestore 訂閱取消函式
+  rooms: [],             // GET /rooms 回傳
+  subscribedRoomId: null,// 目前訂閱中的 room
 };
 
 /* ---------- Firebase 初始化 ---------- */
@@ -292,7 +283,7 @@ function authHeaders(){
 
 /* ---------- 小工具 ---------- */
 const $ = (id) => document.getElementById(id);
-function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); if(id==='s-group') subscribeGroup(); }
+function go(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); if(id==='s-group') subscribeGroup(); if(id==='s-list' && state.bound) loadRooms(); }
 function setStep(k, status){ // status: run|ok|warn
   const el = document.querySelector(`.step[data-k="${k}"]`);
   if(!el) return; el.classList.remove('run','ok','warn'); if(status) el.classList.add(status);
@@ -438,7 +429,60 @@ function showBindErr(){ $('bindErr').style.display='block'; }
 function enterList(){
   $('meRow').innerHTML = `登入身分：<b style="color:#777">${$('inName').value.trim()||state.profile.displayName}</b>`
     + ` · 東京五日遊團員` + (state.demo ? '　<span class="pill demo">DEMO</span>' : '');
-  go('s-list');
+  go('s-list');   // go() 會觸發 loadRooms()
+}
+
+/* =====================================================================
+ *  聊天室列表：打 GET /rooms 取真資料 + 未讀數
+ * ===================================================================== */
+async function loadRooms(){
+  const box = $('roomList');
+  if(!CONFIG.BACKEND){ box.innerHTML = note('未設定後端，無法載入聊天室'); return; }
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/rooms`, { headers: authHeaders() });
+    if(!r.ok){ box.innerHTML = note(`載入失敗（${r.status}）`); return; }
+    state.rooms = await r.json();
+    renderRoomList(state.rooms);
+  }catch(e){ console.error(e); box.innerHTML = note('載入失敗，請確認後端是否啟動'); }
+}
+const note = (t) => `<div class="hint" style="margin:14px 18px">${t}</div>`;
+
+function renderRoomList(rooms){
+  const box = $('roomList'); box.innerHTML = '';
+  if(!rooms.length){ box.innerHTML = note('目前沒有聊天室'); return; }
+  for(const room of rooms) box.appendChild(roomRowEl(room));
+}
+
+function roomRowEl(room){
+  const isGroup = room.type === 0;
+  const isLeader = room.counterpartKind === 1;
+  const icon   = isGroup ? '👥' : isLeader ? '🧑‍✈️' : '👤';
+  const iconBg = isGroup ? 'var(--greenBg)' : isLeader ? 'var(--blueBg)' : '#e8e7e2';
+  const tag    = isGroup  ? '<span class="tag" style="color:var(--green);background:var(--greenBg)">全團</span>'
+               : isLeader ? '<span class="tag" style="color:var(--blue);background:var(--blueBg)">導領</span>' : '';
+  const lm = room.lastMessage;
+  const preview = lm ? (isGroup ? `${esc(lm.senderName)}：${esc(lm.preview)}` : esc(lm.preview)) : '尚無訊息';
+  const time = lm ? fmtTime(lm.createdAtUtc) : '';
+  const unread = room.unreadCount > 0 ? `<div class="unread">${room.unreadCount}</div>` : '';
+
+  const el = document.createElement('div'); el.className = 'row';
+  if(isGroup) el.style.background = '#fbfaf7';
+  el.innerHTML = `<div class="ava" style="background:${iconBg}">${icon}</div>
+    <div class="grow"><div><span class="name">${esc(room.title)}</span>${tag}</div>
+      <div class="preview">${preview}</div></div>
+    <div style="text-align:right"><div class="time">${time}</div>${unread}</div>`;
+  el.onclick = () => openRoom(room);
+  return el;
+}
+
+async function openRoom(room){
+  state.roomId = room.roomId;
+  const h1 = document.querySelector('#s-group h1'); if(h1) h1.textContent = room.title;
+  go('s-group');                          // 用 state.roomId 訂閱
+  if(CONFIG.BACKEND){                      // 標記已讀 → 未讀歸零（背景）
+    try{ await fetch(`${CONFIG.BACKEND}/api/rooms/${room.roomId}/read`, { method:'POST', headers: authHeaders() }); }
+    catch(e){ console.warn('標記已讀失敗', e); }
+  }
 }
 
 /* =====================================================================
@@ -451,13 +495,14 @@ function fmtTime(ts){
   catch{ return ''; }
 }
 
-// 進群聊時開訂閱（只訂一次）
+// 進群聊時開訂閱；切房會重新訂閱
 function subscribeGroup(){
-  if(state.unsub) return;                         // 已訂閱
-  if(!fbDb || !CONFIG.ROOM_ID){                   // 沒設 Firebase / room → 維持靜態示意
-    return;
-  }
   const roomId = state.roomId || CONFIG.ROOM_ID;
+  if(!fbDb || !roomId) return;                 // 沒設 Firebase / room
+  if(state.subscribedRoomId === roomId) return; // 已在訂閱這間
+  if(state.unsub){ state.unsub(); state.unsub = null; }
+  state.subscribedRoomId = roomId;
+  $('groupMsgs').innerHTML = '<div class="daychip"><span>今天</span></div>'; // 換房清空
   const qy = query(collection(fbDb, 'rooms', roomId, 'messages'), orderBy('createdAt'));
   state.unsub = onSnapshot(qy,
     (snap) => renderMessages(snap.docs.map(d => d.data())),
