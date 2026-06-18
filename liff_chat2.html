@@ -274,11 +274,12 @@ async function fbSignIn(token){
   return true;
 }
 
-// 送後端的認證 header：Demo 用 X-Debug-UserId，正式用 Bearer
+// 送後端的 header：認證（Demo 用 X-Debug-UserId，正式用 Bearer）+ 跳過 ngrok 攔截頁
 function authHeaders(){
+  const base = { 'ngrok-skip-browser-warning': '1' };  // 讓 ngrok 直接回 API，而非警告 HTML
   return state.demo
-    ? { 'X-Debug-UserId': CONFIG.DEBUG_USER_ID }
-    : { 'Authorization': `Bearer ${state.accessToken}` };
+    ? { ...base, 'X-Debug-UserId': CONFIG.DEBUG_USER_ID }
+    : { ...base, 'Authorization': `Bearer ${state.accessToken}` };
 }
 
 /* ---------- 小工具 ---------- */
