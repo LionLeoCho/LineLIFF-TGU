@@ -99,6 +99,11 @@
   .composer .ic{font-size:20px;color:var(--sub);cursor:pointer}
   .composer input{margin:0;border-radius:18px;padding:9px 14px}
   .send{width:34px;height:34px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff;cursor:pointer;flex-shrink:0;font-size:16px}
+  /* toggle */
+  .toggle{width:44px;height:26px;border-radius:13px;background:#cfcdc4;position:relative;flex-shrink:0;cursor:pointer;transition:background .2s}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s}
+  .toggle.on{background:var(--green)} .toggle.on::after{left:21px}
+  .toggle.busy{opacity:.5;pointer-events:none}
 </style>
 </head>
 <body>
@@ -163,7 +168,7 @@
 <section id="s-list" class="screen">
   <div class="topbar">
     <div class="grow"><h1>東京五日遊</h1><div class="sub">5/12 – 5/16 · 進行中</div></div>
-    <span class="back" style="font-size:18px">⚙</span>
+    <span class="back" style="font-size:18px;cursor:pointer" onclick="openSettings()">⚙</span>
   </div>
   <div style="flex:1;overflow-y:auto;background:var(--paper)">
     <div id="roomList"></div>
@@ -189,6 +194,26 @@
     <span class="ic" onclick="sendLoc()">📍</span>
     <input id="groupInput" placeholder="輸入訊息…" onkeydown="if(event.key==='Enter')sendText()" />
     <div class="send" onclick="sendText()">➤</div>
+  </div>
+</section>
+
+<!-- ============ G. 個人設定 ============ -->
+<section id="s-settings" class="screen">
+  <div class="topbar"><span class="back" onclick="go('s-list')">‹</span>
+    <div class="grow"><h1>設定</h1></div></div>
+  <div style="flex:1;overflow-y:auto;background:var(--paper)">
+    <div style="display:flex;align-items:center;gap:12px;padding:18px">
+      <div class="ava" style="background:#e8e7e2">👤</div>
+      <div><div class="name" id="setName">—</div>
+        <div class="muted" style="font-size:12px">東京五日遊 · 團員</div></div>
+    </div>
+    <div class="muted" style="font-size:12px;padding:0 18px 8px">隱私</div>
+    <div class="row" style="cursor:default;align-items:flex-start">
+      <div class="grow"><div style="font-size:14px">接受團員私訊</div>
+        <div class="muted" style="font-size:12px;line-height:1.5;margin-top:2px">關閉後，其他團員無法私訊您（仍可在群聊互動、私訊導領）</div></div>
+      <div id="dmToggle" class="toggle" onclick="toggleDm()"></div>
+    </div>
+    <div id="setHint" class="hint" style="margin:0 18px;display:none"></div>
   </div>
 </section>
 
@@ -246,6 +271,7 @@ const state = {
   presenceTimer: null,   // 心跳計時器
   roomType: 0,           // 目前房型別 0=group 1=direct
   announceUnsub: null,   // 置頂公告訂閱取消
+  acceptMemberDm: true,  // 個人私訊開關
 };
 
 /* ---------- Firebase 初始化 ---------- */
@@ -414,8 +440,9 @@ $('bindBtn').addEventListener('click', async ()=>{
         body: JSON.stringify({ fullName:name, birthDate:birth }),
       });
       if(!r.ok){ showBindErr(); return; }
-      const data = await r.json();              // { participantId, displayName, firebaseToken }
+      const data = await r.json();              // { participantId, displayName, acceptMemberDm, firebaseToken }
       state.participantId = data.participantId;
+      state.acceptMemberDm = data.acceptMemberDm !== false;
       // 用 custom token 登入 Firebase → 才能訂閱 Firestore
       await fbSignIn(data.firebaseToken);
     }catch(e){ console.error(e); showBindErr(); return; }
@@ -432,6 +459,42 @@ function enterList(){
   $('meRow').innerHTML = `登入身分：<b style="color:#777">${$('inName').value.trim()||state.profile.displayName}</b>`
     + ` · 東京五日遊團員` + (state.demo ? '　<span class="pill demo">DEMO</span>' : '');
   go('s-list');   // go() 會觸發 loadRooms()
+}
+
+/* =====================================================================
+ *  個人設定（接受團員私訊開關 → PATCH /me/settings）
+ * ===================================================================== */
+function openSettings(){
+  $('setName').textContent = state.profile?.displayName || $('inName').value.trim() || '我';
+  renderDmToggle();
+  go('s-settings');
+}
+function renderDmToggle(){
+  $('dmToggle').classList.toggle('on', state.acceptMemberDm);
+}
+async function toggleDm(){
+  const next = !state.acceptMemberDm;
+  const el = $('dmToggle');
+  el.classList.add('busy');
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/me/settings`, {
+      method:'PATCH',
+      headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ acceptMemberDm: next }),
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();              // { acceptMemberDm }
+    state.acceptMemberDm = data.acceptMemberDm;
+    renderDmToggle();
+    const hint = $('setHint');
+    hint.style.display='block';
+    hint.textContent = state.acceptMemberDm ? '已開啟：其他團員可私訊您。' : '已關閉：其他團員無法私訊您。';
+  }catch(e){
+    console.error('更新設定失敗', e);
+    const hint = $('setHint'); hint.style.display='block'; hint.textContent='更新失敗，請稍後再試。';
+  }finally{
+    el.classList.remove('busy');
+  }
 }
 
 /* =====================================================================
@@ -632,6 +695,7 @@ function sendLoc(){ postMessage(2, JSON.stringify({ lat:35.6896, lng:139.6917, a
 /* go */
 window.go = go;
 window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
+window.openSettings = openSettings; window.toggleDm = toggleDm;
 
 /* 啟動 */
 bootstrap();

@@ -67,6 +67,8 @@ builder.Services.AddScoped<RosterIngestService>();
 builder.Services.AddScoped<MemberService>();
 builder.Services.AddScoped<LeaderService>();
 builder.Services.AddScoped<LeaderIngestService>();
+builder.Services.AddScoped<ScheduleService>();
+builder.Services.AddHostedService<SchedulerHostedService>();
 
 var app = builder.Build();
 

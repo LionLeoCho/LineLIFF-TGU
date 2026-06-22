@@ -34,7 +34,8 @@ public static class ChatEndpoints
 
             var token = await firebase.CreateForParticipantAsync(result.Participant.ParticipantId, ct);
             return Results.Ok(new BindResponse(
-                result.Participant.ParticipantId, result.Participant.DisplayName, token));
+                result.Participant.ParticipantId, result.Participant.DisplayName,
+                result.Participant.AcceptMemberDm, token));
         });
 
         // ---- C-1：查自己（順帶簽 custom token，§I-1）----
@@ -49,11 +50,12 @@ public static class ChatEndpoints
             var participant = await binding.FindBoundAsync(tourId, userId, ct);
 
             if (participant is null)
-                return Results.Ok(new MeResponse(false, null, null, null));
+                return Results.Ok(new MeResponse(false, null, null, null, null));
 
             var token = await firebase.CreateForParticipantAsync(participant.ParticipantId, ct);
             return Results.Ok(new MeResponse(
-                true, participant.ParticipantId, participant.DisplayName, token));
+                true, participant.ParticipantId, participant.DisplayName,
+                participant.AcceptMemberDm, token));
         });
 
         // ---- C-2：我的聊天室列表 + 未讀數 ----

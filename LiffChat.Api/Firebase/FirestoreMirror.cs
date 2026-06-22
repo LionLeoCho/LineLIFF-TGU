@@ -14,6 +14,7 @@ public interface IFirestoreMirror
     Task RemoveMembershipAsync(Guid roomId, Guid participantId, CancellationToken ct = default);
     Task WriteAnnouncementsAsync(Guid roomId, IEnumerable<object> pinned, CancellationToken ct = default);
     Task<List<string>> GetOnlineParticipantsAsync(Guid roomId, TimeSpan stale, CancellationToken ct = default);
+    Task PurgeRoomsAsync(IEnumerable<Guid> roomIds, CancellationToken ct = default);
 }
 
 public class FirestoreMirror : IFirestoreMirror
@@ -79,9 +80,39 @@ public class FirestoreMirror : IFirestoreMirror
             cancellationToken: ct);
     }
 
-    // 線上判斷：online=true 且 lastActiveAt 在 stale 門檻內（心跳沒斷）→ 視為在線。
-    // 供推播「離線才推」使用。
-    public async Task<List<string>> GetOnlineParticipantsAsync(Guid roomId, TimeSpan stale, CancellationToken ct = default)
+    // 清除整團 Firestore 鏡像（30 天期滿）：messages/presence/reads 子集合、room 文件、
+    // announcements、roomMembers。SQL 不動（永久權威）。
+    public async Task PurgeRoomsAsync(IEnumerable<Guid> roomIds, CancellationToken ct = default)
+    {
+        foreach (var roomId in roomIds)
+        {
+            var rid = roomId.ToString();
+            var roomDoc = _db.Collection("rooms").Document(rid);
+            await DeleteCollectionAsync(roomDoc.Collection("messages"), ct);
+            await DeleteCollectionAsync(roomDoc.Collection("presence"), ct);
+            await DeleteCollectionAsync(roomDoc.Collection("reads"), ct);
+            await roomDoc.DeleteAsync(cancellationToken: ct);
+
+            await _db.Collection("announcements").Document(rid).DeleteAsync(cancellationToken: ct);
+
+            var membersDoc = _db.Collection("roomMembers").Document(rid);
+            await DeleteCollectionAsync(membersDoc.Collection("members"), ct);
+            await membersDoc.DeleteAsync(cancellationToken: ct);
+        }
+    }
+
+    private async Task DeleteCollectionAsync(CollectionReference col, CancellationToken ct, int batchSize = 400)
+    {
+        while (true)
+        {
+            var snap = await col.Limit(batchSize).GetSnapshotAsync(ct);
+            if (snap.Count == 0) break;
+            var batch = _db.StartBatch();
+            foreach (var d in snap.Documents) batch.Delete(d.Reference);
+            await batch.CommitAsync(ct);
+            if (snap.Count < batchSize) break;
+        }
+    }
     {
         var snap = await _db.Collection("rooms").Document(roomId.ToString())
                             .Collection("presence").GetSnapshotAsync(ct);

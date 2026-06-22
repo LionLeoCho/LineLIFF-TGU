@@ -1,5 +1,6 @@
 using LiffChat.Api.Data;
 using LiffChat.Api.Firebase;
+using LiffChat.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace LiffChat.Api.Endpoints;
@@ -135,6 +136,13 @@ public static class SeedEndpoints
                 passengers = roster.Select(r => new { r.Id, r.Name, r.Birth }),
                 hint = "用 X-Debug-UserId 打 /bind（陳小華/1990-03-15）取得 participantId，再用 groupRoomId 發訊。",
             });
+        });
+
+        // 手動觸發排程作業（自動結束 + 清除），方便測試不用等到時間到
+        app.MapPost("/api/dev/run-jobs", async (ScheduleService schedule, CancellationToken ct) =>
+        {
+            var r = await schedule.RunAllAsync(ct);
+            return Results.Ok(new { closed = r.Closed, purged = r.Purged });
         });
 
         // 查某 room 目前線上的 participant（驗 presence；門檻 60 秒）
