@@ -295,6 +295,7 @@ const state = {
   roomType: 0,           // 目前房型別 0=group 1=direct
   announceUnsub: null,   // 置頂公告訂閱取消
   acceptMemberDm: true,  // 個人私訊開關
+  groupChatEnabled: true,// 團層級團員互聊開關（導領控）
   memberCache: null,     // 群成員快取（@ 提及用）
   mentions: [],          // 本則訊息已選的提及 [{participantId, name}]
 };
@@ -465,9 +466,10 @@ $('bindBtn').addEventListener('click', async ()=>{
         body: JSON.stringify({ fullName:name, birthDate:birth }),
       });
       if(!r.ok){ showBindErr(); return; }
-      const data = await r.json();              // { participantId, displayName, acceptMemberDm, firebaseToken }
+      const data = await r.json();              // { participantId, displayName, acceptMemberDm, groupChatEnabled, firebaseToken }
       state.participantId = data.participantId;
       state.acceptMemberDm = data.acceptMemberDm !== false;
+      state.groupChatEnabled = data.groupChatEnabled !== false;
       // 用 custom token 登入 Firebase → 才能訂閱 Firestore
       await fbSignIn(data.firebaseToken);
     }catch(e){ console.error(e); showBindErr(); return; }
@@ -495,7 +497,19 @@ function openSettings(){
   go('s-settings');
 }
 function renderDmToggle(){
-  $('dmToggle').classList.toggle('on', state.acceptMemberDm);
+  const el = $('dmToggle');
+  const hint = $('setHint');
+  if(!state.groupChatEnabled){
+    // 團層級已關：個人開關無作用 → 變灰、不可點、顯示說明
+    el.classList.remove('on');
+    el.classList.add('busy');           // busy = 半透明 + 不可點
+    hint.style.display = 'block';
+    hint.textContent = '＊ 導領已關閉本團「團員互聊」，此設定暫時無作用。';
+    return;
+  }
+  el.classList.remove('busy');
+  el.classList.toggle('on', state.acceptMemberDm);
+  hint.style.display = 'none';
 }
 async function toggleDm(){
   const next = !state.acceptMemberDm;

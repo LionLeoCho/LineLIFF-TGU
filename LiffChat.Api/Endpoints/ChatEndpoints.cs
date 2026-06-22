@@ -1,4 +1,5 @@
 using LiffChat.Api.Auth;
+using LiffChat.Api.Data;
 using LiffChat.Api.Firebase;
 using LiffChat.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +20,7 @@ public static class ChatEndpoints
             HttpContext http,
             BindingService binding,
             FirebaseTokenService firebase,
+            AppDbContext db,
             CancellationToken ct) =>
         {
             var userId = http.User.LineUserId();
@@ -32,10 +34,11 @@ public static class ChatEndpoints
                     contactLeader = true,   // 前端顯示「聯絡導領」出口
                 });
 
+            var tour = await db.Tours.FindAsync([tourId], ct);
             var token = await firebase.CreateForParticipantAsync(result.Participant.ParticipantId, ct);
             return Results.Ok(new BindResponse(
                 result.Participant.ParticipantId, result.Participant.DisplayName,
-                result.Participant.AcceptMemberDm, token));
+                result.Participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true, token));
         });
 
         // ---- C-1：查自己（順帶簽 custom token，§I-1）----
@@ -44,18 +47,20 @@ public static class ChatEndpoints
             HttpContext http,
             BindingService binding,
             FirebaseTokenService firebase,
+            AppDbContext db,
             CancellationToken ct) =>
         {
             var userId = http.User.LineUserId();
             var participant = await binding.FindBoundAsync(tourId, userId, ct);
 
             if (participant is null)
-                return Results.Ok(new MeResponse(false, null, null, null, null));
+                return Results.Ok(new MeResponse(false, null, null, null, null, null));
 
+            var tour = await db.Tours.FindAsync([tourId], ct);
             var token = await firebase.CreateForParticipantAsync(participant.ParticipantId, ct);
             return Results.Ok(new MeResponse(
                 true, participant.ParticipantId, participant.DisplayName,
-                participant.AcceptMemberDm, token));
+                participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true, token));
         });
 
         // ---- C-2：我的聊天室列表 + 未讀數 ----

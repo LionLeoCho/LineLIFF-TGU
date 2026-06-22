@@ -7,6 +7,7 @@ public record BindResponse(
     Guid ParticipantId,
     string DisplayName,
     bool AcceptMemberDm,
+    bool GroupChatEnabled,
     string FirebaseToken);   // 併發回 custom token（§I-1：不另開端點）
 
 // ---- GET /api/tours/{tourId}/me ----
@@ -15,6 +16,7 @@ public record MeResponse(
     Guid? ParticipantId,
     string? DisplayName,
     bool? AcceptMemberDm,
+    bool? GroupChatEnabled,
     string? FirebaseToken);
 
 // ---- POST /api/rooms/{roomId}/messages ----
