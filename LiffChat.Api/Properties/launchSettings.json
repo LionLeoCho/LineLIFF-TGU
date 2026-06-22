@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "LiffChat.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "GOOGLE_APPLICATION_CREDENTIALS": "/tguliff-firebase-adminsdk-fbsvc-2dd0bd9391.json"
+      },
+      "applicationUrl": "https://localhost:53342;http://localhost:53343"
+    }
+  }
+}
