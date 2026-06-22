@@ -251,7 +251,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, serv
  *  設定 — 部署前填入
  * ===================================================================== */
 const CONFIG = {
-  LIFF_ID: "2010403729-XrSlNmWR",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-XrSlNmWR
+  LIFF_ID: "2010403729-XrSlNmWR",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-sYBHXgfp
   OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-XrSlNmWR",
   BACKEND: "https://a488-61-66-150-16.ngrok-free.app", // ← .NET 後端 base URL（內網測試填那台位址）
   DEBUG_USER_ID: "Utest001",         // Demo 模式打後端用的 X-Debug-UserId（對應 DevAuthHandler）
@@ -669,26 +669,41 @@ function subscribeGroup(){
 /* ---------- 置頂公告（訂閱 announcements/{roomId}）---------- */
 function subscribeAnnouncements(roomId){
   if(state.announceUnsub){ state.announceUnsub(); state.announceUnsub = null; }
+  pinExpanded = false;                                  // 換房收合
   const bar = $('pinbar');
   if(state.roomType === 1){ bar.style.display = 'none'; return; } // 私訊不顯示置頂
   if(!fbDb){ bar.style.display = 'none'; return; }
   state.announceUnsub = onSnapshot(doc(fbDb, 'announcements', roomId),
-    (snap) => renderPinbar(snap.exists() ? (snap.data().pinned || []) : []),
+    (snap) => { state.pinnedCache = snap.exists() ? (snap.data().pinned || []) : []; renderPinbar(state.pinnedCache); },
     (err) => { console.error('置頂訂閱失敗：', err); bar.style.display = 'none'; });
 }
 
+let pinExpanded = false;
 function renderPinbar(pinned){
   const bar = $('pinbar');
-  if(!pinned.length){ bar.style.display = 'none'; bar.innerHTML = ''; return; }
-  const top = pinned[pinned.length - 1];        // 顯示最新置頂
+  if(!pinned.length){ bar.style.display = 'none'; bar.innerHTML = ''; pinExpanded = false; return; }
   bar.style.display = 'block';
-  bar.innerHTML =
-    `<div style="display:flex;align-items:center;gap:5px">
+  const multi = pinned.length > 1;
+  const caret = !multi ? '' : `<span style="margin-left:auto;font-size:11px;color:var(--blue)">${pinExpanded ? '收合 ▲' : '展開 ▼'}</span>`;
+  const header =
+    `<div style="display:flex;align-items:center;gap:5px;cursor:${multi?'pointer':'default'}" ${multi?'onclick="togglePin()"':''}>
        <span style="font-size:11px">📌</span>
        <span style="font-size:11px;font-weight:600;color:var(--blue)">置頂公告 · ${pinned.length}/3</span>
-     </div>
-     <div style="font-size:12px;line-height:1.5;margin-top:3px">${esc(top.content)}</div>`;
+       ${caret}
+     </div>`;
+  let body;
+  if(pinExpanded){
+    // 展開：全部列出（最新在上）
+    body = [...pinned].reverse().map(p =>
+      `<div style="font-size:12px;line-height:1.5;margin-top:6px;padding-top:6px;border-top:1px solid #d6e6f7">${esc(p.content)}</div>`
+    ).join('');
+  }else{
+    // 收合：只顯示最新一則
+    body = `<div style="font-size:12px;line-height:1.5;margin-top:3px">${esc(pinned[pinned.length-1].content)}</div>`;
+  }
+  bar.innerHTML = header + body;
 }
+function togglePin(){ pinExpanded = !pinExpanded; renderPinbar(state.pinnedCache || []); }
 
 /* ---------- Presence（線上狀態 + 心跳）----------
  * 前端進房寫 rooms/{roomId}/presence/{participantId} = { online, lastActiveAt }，
@@ -856,6 +871,7 @@ window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
 window.openSettings = openSettings; window.toggleDm = toggleDm;
 window.openMemberPicker = openMemberPicker;
 window.onGroupInput = onGroupInput; window.hideMentionPop = hideMentionPop;
+window.togglePin = togglePin;
 
 /* 啟動 */
 bootstrap();
