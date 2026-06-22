@@ -76,4 +76,32 @@ public class MemberService(AppDbContext db, IFirestoreMirror mirror)
         await db.SaveChangesAsync(ct);
         return me.AcceptMemberDm;
     }
+
+    public sealed record MemberItem(
+        Guid ParticipantId, string DisplayName, string? AvatarUrl, int Kind, bool CanDm);
+
+    // 列出同團其他有效成員（供「找團員私訊」選人）。
+    // canDm：對方可否被我私訊 —— 導領永遠可；團員需團層級開關開 + 對方個人開關開。
+    // 回 null = 我未綁定。
+    public async Task<List<MemberItem>?> ListMembersAsync(
+        string tourId, string lineUserId, CancellationToken ct = default)
+    {
+        var me = await db.Participants.FirstOrDefaultAsync(
+            p => p.TourId == tourId && p.LineUserId == lineUserId && p.Status == 0, ct);
+        if (me is null) return null;
+
+        var tour = await db.Tours.FindAsync([tourId], ct);
+        var groupOn = tour?.GroupChatEnabled ?? false;
+
+        var others = await db.Participants
+            .Where(p => p.TourId == tourId && p.Status == 0 && p.ParticipantId != me.ParticipantId)
+            .OrderBy(p => p.Kind == 1 ? 0 : 1)          // 導領排前面
+            .ThenBy(p => p.DisplayName)
+            .ToListAsync(ct);
+
+        return others.Select(p => new MemberItem(
+            p.ParticipantId, p.DisplayName, p.AvatarUrl, p.Kind,
+            CanDm: p.Kind == 1 || (groupOn && p.AcceptMemberDm)   // 導領恆可；團員看兩道開關
+        )).ToList();
+    }
 }

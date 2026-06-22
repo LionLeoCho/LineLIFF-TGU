@@ -81,6 +81,20 @@ public static class ChatEndpoints
             return ok ? Results.NoContent() : Results.NotFound();
         });
 
+        // ---- C-2：列同團團員（找團員私訊用）----
+        g.MapGet("/tours/{tourId}/members", async (
+            string tourId,
+            HttpContext http,
+            MemberService members,
+            CancellationToken ct) =>
+        {
+            var userId = http.User.LineUserId();
+            var list = await members.ListMembersAsync(tourId, userId, ct);
+            return list is null
+                ? Results.NotFound(new { error = "NOT_BOUND" })
+                : Results.Ok(list);
+        });
+
         // ---- C-2：發起一對一（三條件驗證）----
         g.MapPost("/tours/{tourId}/direct", async (
             string tourId,
