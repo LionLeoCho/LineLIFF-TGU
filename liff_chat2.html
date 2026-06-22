@@ -251,9 +251,9 @@ import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, serv
  *  設定 — 部署前填入
  * ===================================================================== */
 const CONFIG = {
-  LIFF_ID: "",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-sYBHXgfp
-  OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-sYBHXgfp",
-  BACKEND: "https://localhost:53342", // ← .NET 後端 base URL（內網測試填那台位址）
+  LIFF_ID: "2010403729-XrSlNmWR",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-sYBHXgfp
+  OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-XrSlNmWR",
+  BACKEND: "https://a488-61-66-150-16.ngrok-free.app", // ← .NET 後端 base URL（內網測試填那台位址）
   DEBUG_USER_ID: "Utest001",         // Demo 模式打後端用的 X-Debug-UserId（對應 DevAuthHandler）
 
   // Firebase web config（專案設定 → 一般 → 你的應用程式 → </>）
@@ -267,7 +267,7 @@ const CONFIG = {
 	measurementId: "G-P5184JQKRQ"
   },
   FIRESTORE_DB: "default",           // 你的具名資料庫（非 "(default)"）
-  ROOM_ID: "1682a511-3198-4bd1-ad8c-e03cf17ef923",                       // ← 先貼 seed 回傳的 groupRoomId；之後由 GET /rooms 取代
+  ROOM_ID: "",                       // ← 先貼 seed 回傳的 groupRoomId；之後由 GET /rooms 取代
 };
 
 /* 假名單（純離線 demo 用；接後端後走後端比對） */
