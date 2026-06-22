@@ -113,6 +113,8 @@ public class FirestoreMirror : IFirestoreMirror
             if (snap.Count < batchSize) break;
         }
     }
+    // 線上判斷：online=true 且 lastActiveAt 在 stale 門檻內 → 視為在線
+    public async Task<List<string>> GetOnlineParticipantsAsync(Guid roomId, TimeSpan stale, CancellationToken ct = default)
     {
         var snap = await _db.Collection("rooms").Document(roomId.ToString())
                             .Collection("presence").GetSnapshotAsync(ct);
