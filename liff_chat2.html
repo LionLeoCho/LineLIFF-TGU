@@ -757,8 +757,8 @@ function mineEl(m){
 
 // 發訊：POST 後端 → 後端寫 Firestore → onSnapshot 自動把它畫出來（不做樂觀更新，才驗得到真實往返）
 async function postMessage(type, content, mentionParticipantIds){
-  if(!CONFIG.BACKEND || !CONFIG.ROOM_ID){ return localAppend(type, content); } // 純離線 demo
   const roomId = state.roomId || CONFIG.ROOM_ID;
+  if(!CONFIG.BACKEND || !roomId){ return localAppend(type, content); } // 沒後端/沒房 → 純離線顯示
   const body = { type, content };
   if(mentionParticipantIds && mentionParticipantIds.length) body.mentionParticipantIds = mentionParticipantIds;
   try{
