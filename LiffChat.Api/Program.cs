@@ -58,6 +58,7 @@ builder.Services.AddSingleton<FirebaseTokenService>();
 builder.Services.AddSingleton<IFirestoreMirror, FirestoreMirror>();
 builder.Services.AddSingleton<IPushService, PushService>();
 builder.Services.AddHttpClient<LineMessagingClient>();
+builder.Services.AddHttpClient<GeocodingService>();
 
 // --- 領域服務 ---
 builder.Services.AddScoped<BindingService>();

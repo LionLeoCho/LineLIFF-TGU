@@ -40,6 +40,7 @@ public class Participant
     public string DisplayName { get; set; } = default!;
     public string? AvatarUrl { get; set; }
     public bool AcceptMemberDm { get; set; } = true;
+    public bool PushEnabled { get; set; } = true;            // 個人推播開關（新訊息推播），預設開
     public byte Status { get; set; }                          // 0=有效 1=退團/停用
     public DateTime CreatedAtUtc { get; set; }
 }

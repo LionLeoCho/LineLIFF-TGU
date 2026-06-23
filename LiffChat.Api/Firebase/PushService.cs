@@ -44,7 +44,8 @@ public class PushService(
         if (memberIds.Count == 0) return;
 
         var recipients = await db.Participants
-            .Where(p => memberIds.Contains(p.ParticipantId) && p.Status == 0 && p.Kind == 0 && p.LineUserId != null)
+            .Where(p => memberIds.Contains(p.ParticipantId) && p.Status == 0 && p.Kind == 0
+                        && p.LineUserId != null && p.PushEnabled)
             .ToListAsync(ct);
         if (recipients.Count == 0) return;
 

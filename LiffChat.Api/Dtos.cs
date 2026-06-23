@@ -8,6 +8,7 @@ public record BindResponse(
     string DisplayName,
     bool AcceptMemberDm,
     bool GroupChatEnabled,
+    bool PushEnabled,
     string FirebaseToken);   // 併發回 custom token（§I-1：不另開端點）
 
 // ---- GET /api/tours/{tourId}/me ----
@@ -17,6 +18,7 @@ public record MeResponse(
     string? DisplayName,
     bool? AcceptMemberDm,
     bool? GroupChatEnabled,
+    bool? PushEnabled,
     string? FirebaseToken);
 
 // ---- POST /api/rooms/{roomId}/messages ----
@@ -74,8 +76,11 @@ public record OpenDirectRequest(Guid TargetParticipantId);
 public record OpenDirectResponse(Guid RoomId, bool Created);
 
 // ---- PATCH /api/tours/{tourId}/me/settings ----
-public record UpdateSettingsRequest(bool AcceptMemberDm);
-public record SettingsResponse(bool AcceptMemberDm);
+public record UpdateSettingsRequest(bool? AcceptMemberDm, bool? PushEnabled);
+public record SettingsResponse(bool AcceptMemberDm, bool PushEnabled);
+
+// ---- POST /api/geocode ----
+public record GeocodeRequest(double Lat, double Lng);
 
 // ---- 導領端 ----
 public record AnnouncementRequest(string Content, bool Pin);

@@ -64,17 +64,18 @@ public class MemberService(AppDbContext db, IFirestoreMirror mirror)
         return roomId;
     }
 
-    // 個人私訊開關
-    public async Task<bool?> UpdateAcceptMemberDmAsync(
-        string tourId, string lineUserId, bool value, CancellationToken ct = default)
+    // 個人設定（接受團員私訊 / 新訊息推播）；只更新有帶的欄位。回 null = 未綁定。
+    public async Task<(bool AcceptMemberDm, bool PushEnabled)?> UpdateSettingsAsync(
+        string tourId, string lineUserId, bool? acceptMemberDm, bool? pushEnabled, CancellationToken ct = default)
     {
         var me = await db.Participants.FirstOrDefaultAsync(
             p => p.TourId == tourId && p.LineUserId == lineUserId && p.Status == 0, ct);
         if (me is null) return null;
 
-        me.AcceptMemberDm = value;
+        if (acceptMemberDm is { } a) me.AcceptMemberDm = a;
+        if (pushEnabled is { } pe) me.PushEnabled = pe;
         await db.SaveChangesAsync(ct);
-        return me.AcceptMemberDm;
+        return (me.AcceptMemberDm, me.PushEnabled);
     }
 
     public sealed record MemberItem(

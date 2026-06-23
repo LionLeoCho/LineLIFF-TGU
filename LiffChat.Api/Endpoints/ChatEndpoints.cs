@@ -38,7 +38,8 @@ public static class ChatEndpoints
             var token = await firebase.CreateForParticipantAsync(result.Participant.ParticipantId, ct);
             return Results.Ok(new BindResponse(
                 result.Participant.ParticipantId, result.Participant.DisplayName,
-                result.Participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true, token));
+                result.Participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true,
+                result.Participant.PushEnabled, token));
         });
 
         // ---- C-1：查自己（順帶簽 custom token，§I-1）----
@@ -54,13 +55,14 @@ public static class ChatEndpoints
             var participant = await binding.FindBoundAsync(tourId, userId, ct);
 
             if (participant is null)
-                return Results.Ok(new MeResponse(false, null, null, null, null, null));
+                return Results.Ok(new MeResponse(false, null, null, null, null, null, null));
 
             var tour = await db.Tours.FindAsync([tourId], ct);
             var token = await firebase.CreateForParticipantAsync(participant.ParticipantId, ct);
             return Results.Ok(new MeResponse(
                 true, participant.ParticipantId, participant.DisplayName,
-                participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true, token));
+                participant.AcceptMemberDm, tour?.GroupChatEnabled ?? true,
+                participant.PushEnabled, token));
         });
 
         // ---- C-2：我的聊天室列表 + 未讀數 ----
@@ -84,6 +86,16 @@ public static class ChatEndpoints
             var userId = http.User.LineUserId();
             var ok = await rooms.MarkReadAsync(roomId, userId, ct);
             return ok ? Results.NoContent() : Results.NotFound();
+        });
+
+        // ---- C-2：反查地址（位置訊息用，key 留後端）----
+        g.MapPost("/geocode", async (
+            GeocodeRequest body,
+            GeocodingService geo,
+            CancellationToken ct) =>
+        {
+            var address = await geo.ReverseAsync(body.Lat, body.Lng, ct);
+            return Results.Ok(new { address });
         });
 
         // ---- C-2：列同團團員（找團員私訊用）----
@@ -132,10 +144,10 @@ public static class ChatEndpoints
             CancellationToken ct) =>
         {
             var userId = http.User.LineUserId();
-            var v = await members.UpdateAcceptMemberDmAsync(tourId, userId, body.AcceptMemberDm, ct);
+            var v = await members.UpdateSettingsAsync(tourId, userId, body.AcceptMemberDm, body.PushEnabled, ct);
             return v is null
                 ? Results.NotFound(new { error = "NOT_BOUND" })
-                : Results.Ok(new SettingsResponse(v.Value));
+                : Results.Ok(new SettingsResponse(v.Value.AcceptMemberDm, v.Value.PushEnabled));
         });
 
         // ---- C-2：發訊息（★核心）----

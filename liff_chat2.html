@@ -228,6 +228,13 @@
       <div id="dmToggle" class="toggle" onclick="toggleDm()"></div>
     </div>
     <div id="setHint" class="hint" style="margin:0 18px;display:none"></div>
+
+    <div class="muted" style="font-size:12px;padding:18px 18px 8px">通知</div>
+    <div class="row" style="cursor:default;align-items:flex-start">
+      <div class="grow"><div style="font-size:14px">新訊息推播</div>
+        <div class="muted" style="font-size:12px;line-height:1.5;margin-top:2px">關閉後，不再透過 LINE 收到新訊息提醒（聊天室內仍即時顯示）</div></div>
+      <div id="pushToggle" class="toggle" onclick="togglePush()"></div>
+    </div>
   </div>
 </section>
 
@@ -296,6 +303,7 @@ const state = {
   announceUnsub: null,   // 置頂公告訂閱取消
   acceptMemberDm: true,  // 個人私訊開關
   groupChatEnabled: true,// 團層級團員互聊開關（導領控）
+  pushEnabled: true,     // 個人推播開關
   memberCache: null,     // 群成員快取（@ 提及用）
   mentions: [],          // 本則訊息已選的提及 [{participantId, name}]
 };
@@ -470,6 +478,7 @@ $('bindBtn').addEventListener('click', async ()=>{
       state.participantId = data.participantId;
       state.acceptMemberDm = data.acceptMemberDm !== false;
       state.groupChatEnabled = data.groupChatEnabled !== false;
+      state.pushEnabled = data.pushEnabled !== false;
       // 用 custom token 登入 Firebase → 才能訂閱 Firestore
       await fbSignIn(data.firebaseToken);
     }catch(e){ console.error(e); showBindErr(); return; }
@@ -494,7 +503,32 @@ function enterList(){
 function openSettings(){
   $('setName').textContent = state.profile?.displayName || $('inName').value.trim() || '我';
   renderDmToggle();
+  renderPushToggle();
   go('s-settings');
+}
+function renderPushToggle(){
+  $('pushToggle').classList.toggle('on', state.pushEnabled);
+}
+async function togglePush(){
+  const next = !state.pushEnabled;
+  const el = $('pushToggle');
+  el.classList.add('busy');
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/me/settings`, {
+      method:'PATCH',
+      headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ pushEnabled: next }),
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();              // { acceptMemberDm, pushEnabled }
+    state.pushEnabled = data.pushEnabled;
+    renderPushToggle();
+  }catch(e){
+    console.error('更新推播設定失敗', e);
+    renderPushToggle();
+  }finally{
+    el.classList.remove('busy');
+  }
 }
 function renderDmToggle(){
   const el = $('dmToggle');
@@ -752,8 +786,11 @@ function bodyHtml(m){
   if(m.type === 1) // image：content = URL
     return `<div class="body" style="padding:5px"><img src="${esc(m.content)}" style="max-width:150px;border-radius:8px;display:block"></div>`;
   if(m.type === 2){ // location：content = JSON{lat,lng,address}
-    let addr=''; try{ addr = JSON.parse(m.content).address || ''; }catch{}
-    return `<div class="loc"><div class="pin">📍</div><div><div style="font-size:12px;font-weight:600">分享了位置</div><div style="font-size:11px;color:#999">${esc(addr)}</div></div></div>`;
+    let lat=0, lng=0, addr=''; try{ const o=JSON.parse(m.content); lat=o.lat; lng=o.lng; addr=o.address||''; }catch{}
+    const maps = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+    return `<a href="${maps}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">
+      <div class="loc"><div class="pin">📍</div><div><div style="font-size:12px;font-weight:600">分享了位置</div>
+      <div style="font-size:11px;color:#999">${esc(addr || '點開查看地圖')}</div></div></div></a>`;
   }
   const safe = esc(m.content).replace(/(@\S+)/g,'<span class="at">$1</span>');
   return `<div class="body">${safe}</div>`;
@@ -807,7 +844,24 @@ function sendText(){
   postMessage(0, v, ids);
 }
 function sendImg(){ postMessage(1, 'https://picsum.photos/300/200'); }
-function sendLoc(){ postMessage(2, JSON.stringify({ lat:35.6896, lng:139.6917, address:'新宿區西新宿2丁目' })); }
+function sendLoc(){
+  if(!navigator.geolocation){ alert('此裝置不支援定位功能'); return; }
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    let address = '';
+    try{
+      const r = await fetch(`${CONFIG.BACKEND}/api/geocode`, {
+        method:'POST', headers:{ 'Content-Type':'application/json', ...authHeaders() },
+        body: JSON.stringify({ lat, lng }),
+      });
+      if(r.ok) address = (await r.json()).address || '';
+    }catch(e){ console.warn('反查地址失敗', e); }
+    postMessage(2, JSON.stringify({ lat, lng, address }));
+  }, (err) => {
+    console.warn('定位失敗', err);
+    alert('無法取得位置，請確認瀏覽器/LINE 已允許定位權限。');
+  }, { enableHighAccuracy:true, timeout:10000 });
+}
 
 /* ---------- @ 提及自動補全（僅群聊）---------- */
 async function ensureMembers(){
@@ -868,7 +922,7 @@ function pickMention(m, tokenStart){
 /* go */
 window.go = go;
 window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
-window.openSettings = openSettings; window.toggleDm = toggleDm;
+window.openSettings = openSettings; window.toggleDm = toggleDm; window.togglePush = togglePush;
 window.openMemberPicker = openMemberPicker;
 window.onGroupInput = onGroupInput; window.hideMentionPop = hideMentionPop;
 window.togglePin = togglePin;
