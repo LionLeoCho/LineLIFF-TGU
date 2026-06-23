@@ -89,6 +89,17 @@ public class BindingService(AppDbContext db, IFirestoreMirror mirror)
         db.Participants.FirstOrDefaultAsync(
             x => x.TourId == tourId && x.LineUserId == lineUserId && x.Status == 0, ct);
 
+    // 解除綁定（登出）：把 LINE 帳號從 participant 拿掉，participant 與歷史保留。
+    // 之後同 userId 再綁定即可重新建立關聯。回 true=有解綁、false=本來就沒綁。
+    public async Task<bool> UnbindAsync(string tourId, string lineUserId, CancellationToken ct = default)
+    {
+        var p = await FindBoundAsync(tourId, lineUserId, ct);
+        if (p is null) return false;
+        p.LineUserId = null;
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     private async Task EnsureGroupMembershipAsync(string tourId, Guid participantId, CancellationToken ct)
     {
         var groupRoom = await db.Rooms.FirstOrDefaultAsync(

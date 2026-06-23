@@ -88,6 +88,18 @@ public static class ChatEndpoints
             return ok ? Results.NoContent() : Results.NotFound();
         });
 
+        // ---- C-1：解除綁定（登出）----
+        g.MapPost("/tours/{tourId}/me/unbind", async (
+            string tourId,
+            HttpContext http,
+            BindingService binding,
+            CancellationToken ct) =>
+        {
+            var userId = http.User.LineUserId();
+            var ok = await binding.UnbindAsync(tourId, userId, ct);
+            return Results.Ok(new { unbound = ok });
+        });
+
         // ---- C-2：反查地址（位置訊息用，key 留後端）----
         g.MapPost("/geocode", async (
             GeocodeRequest body,

@@ -235,6 +235,11 @@
         <div class="muted" style="font-size:12px;line-height:1.5;margin-top:2px">關閉後，不再透過 LINE 收到新訊息提醒（聊天室內仍即時顯示）</div></div>
       <div id="pushToggle" class="toggle" onclick="togglePush()"></div>
     </div>
+
+    <div style="padding:24px 18px">
+      <button class="btn" style="background:#fff;color:var(--errInk);border:1px solid var(--errLine)" onclick="logout()">登出（解除綁定）</button>
+      <div class="muted" style="font-size:11.5px;line-height:1.6;margin-top:10px">登出後需重新輸入姓名與生日才能再次進入此團聊天室。聊天紀錄會保留。</div>
+    </div>
   </div>
 </section>
 
@@ -430,14 +435,35 @@ function renderProfile(){
 }
 
 /* 啟動完成後路由：好友門檻 → 已綁直接進房 → 否則綁定 */
-function afterBoot(){
+async function afterBoot(){
   $('bootSpin').style.display='none';
-  setTimeout(()=>{
-    if(state.isFriend === false){ go('s-oa'); return; }
-    // 已綁判斷：正式模式會打後端 GET /me；這裡 demo 一律當未綁
-    prepBind();
-    go('s-bind');
-  }, state.demo ? 1100 : 600);
+  if(state.isFriend === false){ go('s-oa'); return; }
+
+  // A. 自動登入：先查這個 userId 在本團綁過沒；綁過 → 直接進房
+  if(CONFIG.BACKEND){
+    try{
+      const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/me`, { headers: authHeaders() });
+      if(r.ok){
+        const me = await r.json();            // { bound, participantId, displayName, acceptMemberDm, groupChatEnabled, pushEnabled, firebaseToken }
+        if(me.bound){
+          state.participantId = me.participantId;
+          state.acceptMemberDm = me.acceptMemberDm !== false;
+          state.groupChatEnabled = me.groupChatEnabled !== false;
+          state.pushEnabled = me.pushEnabled !== false;
+          state.bound = true;
+          await fbSignIn(me.firebaseToken);     // 自動登入 Firebase
+          $('meRow').innerHTML = `登入身分：<b style="color:#777">${esc(me.displayName)}</b> · 東京五日遊團員`
+            + (state.demo ? '　<span class="pill demo">DEMO</span>' : '');
+          go('s-list');                          // 直接進聊天室列表
+          return;
+        }
+      }
+    }catch(e){ console.warn('查綁定狀態失敗，改走綁定流程', e); }
+  }
+
+  // 未綁 → 綁定畫面
+  prepBind();
+  go('s-bind');
 }
 
 /* OA 加好友：正式模式開官方帳號加友頁，回來重檢；demo 直接放行 */
@@ -508,6 +534,26 @@ function openSettings(){
 }
 function renderPushToggle(){
   $('pushToggle').classList.toggle('on', state.pushEnabled);
+}
+
+async function logout(){
+  if(!confirm('確定要登出並解除綁定嗎？')) return;
+  if(CONFIG.BACKEND){
+    try{ await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/me/unbind`, { method:'POST', headers: authHeaders() }); }
+    catch(e){ console.warn('解除綁定失敗', e); }
+  }
+  // 收掉即時訂閱、清本地狀態
+  leaveRoom();
+  state.bound = false;
+  state.participantId = null;
+  state.rooms = [];
+  state.memberCache = null;
+  state.subscribedRoomId = null;
+  $('roomList').innerHTML = '';
+  $('inName').value = ''; $('inBirth').value = '';
+  // 回綁定畫面（已過 OA 門檻就直接到綁定）
+  prepBind();
+  go('s-bind');
 }
 async function togglePush(){
   const next = !state.pushEnabled;
@@ -922,7 +968,7 @@ function pickMention(m, tokenStart){
 /* go */
 window.go = go;
 window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
-window.openSettings = openSettings; window.toggleDm = toggleDm; window.togglePush = togglePush;
+window.openSettings = openSettings; window.toggleDm = toggleDm; window.togglePush = togglePush; window.logout = logout;
 window.openMemberPicker = openMemberPicker;
 window.onGroupInput = onGroupInput; window.hideMentionPop = hideMentionPop;
 window.togglePin = togglePin;
