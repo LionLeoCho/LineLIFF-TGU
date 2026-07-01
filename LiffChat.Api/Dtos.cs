@@ -82,6 +82,10 @@ public record SettingsResponse(bool AcceptMemberDm, bool PushEnabled);
 // ---- POST /api/geocode ----
 public record GeocodeRequest(double Lat, double Lng);
 
+// ---- POST /api/tours/{tourId}/leader-login ----
+public record LeaderLoginRequest(string LeaderAccountId);
+public record LeaderLoginResponse(Guid ParticipantId, string DisplayName, string FirebaseToken);
+
 // ---- 導領端 ----
 public record AnnouncementRequest(string Content, bool Pin);
 public record AnnouncementResponse(Guid MessageId, bool Pinned);

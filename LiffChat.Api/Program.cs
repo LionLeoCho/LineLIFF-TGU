@@ -27,11 +27,11 @@ if (authMode == "Dev")
 else
     authBuilder.AddScheme<AuthenticationSchemeOptions, LiffAuthHandler>(LiffAuthHandler.Scheme, _ => { });
 
-// 導領 scheme：開發用假登入，正式用 token stub（與客人端分開）
-if (builder.Environment.IsDevelopment())
-    authBuilder.AddScheme<AuthenticationSchemeOptions, DevLeaderAuthHandler>(LeaderAuth.Scheme, _ => { });
+// 導領 scheme：與客人端一致依 Auth:Mode（"Liff" → 走 LIFF 綁定的導領；否則 Dev 假登入）
+if (authMode == "Liff")
+    authBuilder.AddScheme<AuthenticationSchemeOptions, LiffLeaderAuthHandler>(LeaderAuth.Scheme, _ => { });
 else
-    authBuilder.AddScheme<AuthenticationSchemeOptions, LeaderTokenAuthHandler>(LeaderAuth.Scheme, _ => { });
+    authBuilder.AddScheme<AuthenticationSchemeOptions, DevLeaderAuthHandler>(LeaderAuth.Scheme, _ => { });
 
 builder.Services.AddAuthorization();
 

@@ -118,6 +118,21 @@ public class LeaderService(AppDbContext db, IFirestoreMirror mirror, IPushServic
         db.Participants.FirstOrDefaultAsync(
             p => p.TourId == tourId && p.Kind == 1 && p.LeaderAccountId == leaderAccountId && p.Status == 0, ct);
 
+    // 導領 LIFF 登入（做法三）：比對這團有此導領 → 把 LINE userId 記到該導領 participant。
+    // 回該 participant（給前端拿 participantId/displayName + 後端簽 Firebase token）；查無回 null。
+    public async Task<Participant?> LeaderLoginAsync(
+        string tourId, string leaderAccountId, string lineUserId, CancellationToken ct = default)
+    {
+        var leader = await ResolveLeaderAsync(tourId, leaderAccountId, ct);
+        if (leader is null) return null;
+        if (leader.LineUserId != lineUserId)
+        {
+            leader.LineUserId = lineUserId;          // 綁定/更新導領的 LINE 帳號
+            await db.SaveChangesAsync(ct);
+        }
+        return leader;
+    }
+
     // 重算該 room 目前有效置頂 → 寫進 Firestore announcements/{roomId}
     private async Task SyncPinnedAsync(Guid roomId, CancellationToken ct)
     {

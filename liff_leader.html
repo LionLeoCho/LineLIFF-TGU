@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>導領後台</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{ --bg:#f4f4f2; --paper:#fff; --topbar:#1b3a5b; --ink:#2c2c2a; --sub:#888;
+    --line:#eee; --line2:#f0efe9; --blue:#185fa5; --blueBg:#e6f1fb; --blueLine:#b5d4f4;
+    --green:#1d9e75; --greenBg:#e1f5ee; --err:#a32d2d; --errBg:#fcebeb; --errLine:#f7c1c1; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Noto Sans TC',system-ui,-apple-system,sans-serif;color:var(--ink);
+    background:var(--bg);max-width:480px;margin:0 auto;min-height:100vh}
+  .topbar{background:var(--topbar);color:#fff;padding:16px 18px}
+  .topbar h1{font-size:16px;font-weight:600;margin:0}
+  .topbar .sub{font-size:12px;opacity:.8;margin-top:2px}
+  .wrap{padding:16px}
+  .card{background:var(--paper);border:1px solid #e3e1da;border-radius:14px;padding:16px;margin-bottom:14px}
+  .card h2{font-size:14px;font-weight:600;margin:0 0 12px}
+  label{font-size:13px;color:#5f5e5a;display:block;margin-bottom:6px}
+  textarea,input[type=date]{width:100%;border:1px solid #d3d1c7;border-radius:10px;padding:11px 13px;
+    font-size:14px;font-family:inherit;outline:none;resize:vertical}
+  textarea{min-height:72px}
+  .row{display:flex;align-items:center;gap:8px;margin:10px 0}
+  .btn{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:11px 16px;
+    font-size:14px;font-weight:600;cursor:pointer}
+  .btn.green{background:var(--green)} .btn.ghost{background:#fff;color:var(--blue);border:1px solid var(--blueLine)}
+  .btn:active{opacity:.85}
+  .toggle{width:46px;height:27px;border-radius:14px;background:#cfcdc4;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+  .toggle::after{content:'';position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;transition:left .2s}
+  .toggle.on{background:var(--green)} .toggle.on::after{left:22px}
+  .pin{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-top:1px solid var(--line2);font-size:13px;line-height:1.5}
+  .pin:first-child{border-top:none}
+  .pin .x{margin-left:auto;color:var(--err);cursor:pointer;font-size:12px;white-space:nowrap}
+  .muted{color:var(--sub);font-size:12px;line-height:1.6}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2c2c2a;color:#fff;
+    padding:10px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:50}
+  .toast.show{opacity:.95}
+  .boot{padding:60px 24px;text-align:center;color:var(--sub)}
+  .ulist{font-size:13px;line-height:1.8}
+  .ulist .u{padding:6px 0;border-top:1px solid var(--line2)}
+  .ulist .u:first-child{border-top:none}
+  .err{background:var(--errBg);border:1px solid var(--errLine);color:var(--err);border-radius:8px;padding:10px;font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<div class="topbar"><h1 id="title">導領後台</h1><div class="sub" id="subtitle">載入中…</div></div>
+
+<div id="boot" class="boot">正在驗證導領身分…</div>
+
+<div id="app" class="wrap" style="display:none">
+
+  <!-- 發公告 -->
+  <div class="card">
+    <h2>📢 發布公告</h2>
+    <label>公告內容</label>
+    <textarea id="annContent" placeholder="輸入要發布給全團的公告…"></textarea>
+    <div class="row"><div id="pinToggle" class="toggle" onclick="this.classList.toggle('on')"></div>
+      <span style="font-size:13px">同時置頂（最多 3 則）</span></div>
+    <button class="btn green" onclick="postAnnouncement()">發布</button>
+  </div>
+
+  <!-- 置頂管理 -->
+  <div class="card">
+    <h2>📌 目前置頂</h2>
+    <div id="pinList" class="muted">載入中…</div>
+  </div>
+
+  <!-- 團員互聊開關 -->
+  <div class="card">
+    <h2>💬 團員互聊</h2>
+    <div class="row"><div class="muted" style="flex:1">關閉後，團員之間無法互相私訊（仍可私訊導領、群聊）</div>
+      <div id="gcToggle" class="toggle" onclick="toggleGroupChat()"></div></div>
+  </div>
+
+  <!-- 結束日 -->
+  <div class="card">
+    <h2>📅 修改結束日</h2>
+    <label>回程日 +1 自動結束；可手動調整</label>
+    <input type="date" id="endDate" />
+    <div style="margin-top:10px"><button class="btn ghost" onclick="setSchedule()">儲存結束日</button></div>
+  </div>
+
+  <!-- 未綁定名單 -->
+  <div class="card">
+    <h2>👥 未綁定名單</h2>
+    <div class="muted" style="margin-bottom:8px">尚未進來綁定的團員，可主動聯繫提醒</div>
+    <div id="unboundList" class="ulist muted">載入中…</div>
+  </div>
+
+</div>
+
+<div id="errBox" class="wrap" style="display:none"><div class="err" id="errMsg"></div></div>
+<div id="toast" class="toast"></div>
+
+<script type="module">
+const CONFIG = {
+  LIFF_ID: "2010403729-XrSlNmWR",   // 導領用 LIFF（可與客人端同一個 channel，靠 URL 參數區分入口）
+  BACKEND: "https://06d6-61-66-150-16.ngrok-free.app",
+};
+
+const $ = (id) => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+const state = {
+  tourId: q.get('tourId') || 'demo-tour',
+  leaderId: q.get('leaderId') || q.get('leaderAccountId') || 'L-demo',
+  token: null, demo: false, participantId: null, displayName: '',
+};
+
+function authHeaders(){
+  const h = { 'ngrok-skip-browser-warning':'1' };
+  if(!state.demo && state.token) h['Authorization'] = `Bearer ${state.token}`;
+  return h;
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function showErr(msg){ $('boot').style.display='none'; $('app').style.display='none'; $('errBox').style.display='block'; $('errMsg').textContent=msg; }
+
+async function boot(){
+  // 取得 LIFF token（導領的 LINE 身分）
+  if(CONFIG.LIFF_ID && typeof liff !== 'undefined'){
+    try{
+      await liff.init({ liffId: CONFIG.LIFF_ID });
+      if(!liff.isLoggedIn()){ liff.login({ redirectUri: location.href }); return; }
+      state.token = liff.getAccessToken();
+    }catch(e){ console.warn('LIFF init 失敗，改 Demo', e); state.demo = true; }
+  } else { state.demo = true; }
+
+  // leader-login：用 LINE userId 比對團導領 → 綁定
+  try{
+    const headers = { 'Content-Type':'application/json', ...authHeaders() };
+    if(state.demo) headers['X-Debug-UserId'] = 'Uleaderdemo';  // demo 用假 userId（需後端 Dev 模式）
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/leader-login`, {
+      method:'POST', headers, body: JSON.stringify({ leaderAccountId: state.leaderId }),
+    });
+    if(!r.ok){ showErr(r.status===404 ? '此團查無您的導領帳號，請確認連結是否正確。' : `登入失敗（${r.status}）`); return; }
+    const d = await r.json();
+    state.participantId = d.participantId; state.displayName = d.displayName;
+  }catch(e){ console.error(e); showErr('無法連線後端，請稍後再試。'); return; }
+
+  $('title').textContent = `導領後台`;
+  $('subtitle').textContent = `${state.displayName} · 團號 ${state.tourId}`;
+  $('boot').style.display='none'; $('app').style.display='block';
+  loadPins(); loadUnbound();
+}
+
+async function postAnnouncement(){
+  const content = $('annContent').value.trim();
+  if(!content){ toast('請輸入公告內容'); return; }
+  const pin = $('pinToggle').classList.contains('on');
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/announcements`, {
+      method:'POST', headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ content, pin }),
+    });
+    if(!r.ok){ toast(r.status===409||r.status===400 ? '置頂已達上限（3 則）' : `發布失敗（${r.status}）`); return; }
+    $('annContent').value=''; $('pinToggle').classList.remove('on');
+    toast('已發布'); loadPins();
+  }catch(e){ console.error(e); toast('發布失敗'); }
+}
+
+async function loadPins(){
+  // 置頂清單從未綁定端點拿不到；改打 announcements 沒有 GET，這裡用 Firestore 之外的方式：
+  // 簡化：發布後即時刷新由後端回應；此處顯示提示。實際置頂內容客人端即時可見。
+  $('pinList').innerHTML = '<span class="muted">置頂變更後，團員端會即時更新顯示。<br>（如需在此檢視/撤下清單，可加一支查詢端點）</span>';
+}
+
+async function toggleGroupChat(){
+  const el = $('gcToggle'); const next = !el.classList.contains('on');
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/settings`, {
+      method:'PATCH', headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ groupChatEnabled: next }),
+    });
+    if(!r.ok){ toast(`更新失敗（${r.status}）`); return; }
+    el.classList.toggle('on', next); toast(next ? '已開啟團員互聊' : '已關閉團員互聊');
+  }catch(e){ console.error(e); toast('更新失敗'); }
+}
+
+async function setSchedule(){
+  const v = $('endDate').value;
+  if(!v){ toast('請選結束日'); return; }
+  const endAtUtc = new Date(v + 'T00:00:00').toISOString();
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/schedule`, {
+      method:'PATCH', headers:{ 'Content-Type':'application/json', ...authHeaders() },
+      body: JSON.stringify({ endAtUtc }),
+    });
+    if(!r.ok){ toast(`更新失敗（${r.status}）`); return; }
+    toast('結束日已更新');
+  }catch(e){ console.error(e); toast('更新失敗'); }
+}
+
+async function loadUnbound(){
+  try{
+    const r = await fetch(`${CONFIG.BACKEND}/api/tours/${state.tourId}/unbound`, { headers: authHeaders() });
+    if(!r.ok){ $('unboundList').textContent = `載入失敗（${r.status}）`; return; }
+    const list = await r.json();
+    if(!list.length){ $('unboundList').innerHTML = '<span class="muted">全部團員都已綁定 🎉</span>'; return; }
+    $('unboundList').innerHTML = list.map(p =>
+      `<div class="u">${esc(p.fullName)}　<span class="muted">${esc(p.birthDate?.slice(0,10)||'')}</span></div>`).join('');
+  }catch(e){ console.error(e); $('unboundList').textContent = '載入失敗'; }
+}
+const esc = (s) => String(s ?? '').replace(/</g,'&lt;');
+
+window.postAnnouncement = postAnnouncement;
+window.toggleGroupChat = toggleGroupChat;
+window.setSchedule = setSchedule;
+
+boot();
+</script>
+</body>
+</html>
