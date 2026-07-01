@@ -125,9 +125,19 @@ public class LeaderService(AppDbContext db, IFirestoreMirror mirror, IPushServic
     {
         var leader = await ResolveLeaderAsync(tourId, leaderAccountId, ct);
         if (leader is null) return null;
+
         if (leader.LineUserId != lineUserId)
         {
-            leader.LineUserId = lineUserId;          // 綁定/更新導領的 LINE 帳號
+            // 同團一個 userId 只能對一個 participant（唯一索引）。
+            // 若此 userId 已綁在別的 participant（例如曾以客人身分綁定），先解除，再綁到導領。
+            var others = await db.Participants
+                .Where(p => p.TourId == tourId && p.LineUserId == lineUserId
+                            && p.ParticipantId != leader.ParticipantId)
+                .ToListAsync(ct);
+            foreach (var o in others) o.LineUserId = null;
+            if (others.Count > 0) await db.SaveChangesAsync(ct);   // 先清掉，避免同批 insert 撞唯一鍵
+
+            leader.LineUserId = lineUserId;
             await db.SaveChangesAsync(ct);
         }
         return leader;
