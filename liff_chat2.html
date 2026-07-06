@@ -203,7 +203,8 @@
   </div>
   <div class="composer" style="position:relative">
     <div id="mentionPop" class="mentionpop" style="display:none"></div>
-    <span class="ic" onclick="sendImg()">🖼️</span>
+    <span class="ic" onclick="document.getElementById('imgFile').click()">🖼️</span>
+    <input id="imgFile" type="file" accept="image/*" style="display:none" onchange="onPickImage(event)" />
     <span class="ic" onclick="sendLoc()">📍</span>
     <input id="groupInput" placeholder="輸入訊息…" autocomplete="off"
            oninput="onGroupInput()" onkeydown="if(event.key==='Enter')sendText(); if(event.key==='Escape')hideMentionPop()" />
@@ -265,7 +266,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot, doc, setDoc, serv
 const CONFIG = {
   LIFF_ID: "2010403729-XrSlNmWR",                       // 本機測試先留空 → Demo 模式，統一用 X-Debug-UserId（與 Postman 一致）。真機測試再填回：2010403729-sYBHXgfp
   OA_ADD_FRIEND_URL: "https://liff.line.me/2010403729-XrSlNmWR",
-  BACKEND: "https://06d6-61-66-150-16.ngrok-free.app", // ← .NET 後端 base URL（內網測試填那台位址）
+  BACKEND: "https://d29f-61-66-150-16.ngrok-free.app", // ← .NET 後端 base URL（內網測試填那台位址）
   DEBUG_USER_ID: "Utest001",         // Demo 模式打後端用的 X-Debug-UserId（對應 DevAuthHandler）
 
   // Firebase web config（專案設定 → 一般 → 你的應用程式 → </>）
@@ -889,7 +890,50 @@ function sendText(){
   hideMentionPop();
   postMessage(0, v, ids);
 }
-function sendImg(){ postMessage(1, 'https://picsum.photos/300/200'); }
+// 選圖 → 壓縮 → 上傳 → 發訊
+async function onPickImage(ev){
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = '';                       // 清掉，讓同一張可再選
+  if(!file) return;
+  if(!CONFIG.BACKEND){ return localAppend(1, ''); }
+  const roomId = state.roomId || CONFIG.ROOM_ID;
+  if(!roomId) return;
+  try{
+    const blob = await compressImage(file, 1600, 0.8);   // 長邊 1600、品質 80%
+    const fd = new FormData();
+    fd.append('file', blob, 'photo.jpg');
+    const r = await fetch(`${CONFIG.BACKEND}/api/rooms/${roomId}/images`, {
+      method:'POST',
+      headers: authHeaders(),                  // 注意：不要手動設 Content-Type，讓瀏覽器自帶 multipart boundary
+      body: fd,
+    });
+    if(!r.ok){ console.error('圖片上傳失敗', r.status, await r.text()); alert('圖片上傳失敗'); return; }
+    const { url } = await r.json();
+    postMessage(1, url);                        // type=image, content=CDN URL
+  }catch(e){ console.error(e); alert('圖片處理失敗'); }
+}
+
+// canvas 壓縮：等比縮到長邊上限，輸出 JPEG
+function compressImage(file, maxEdge, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width:w, height:h } = img;
+      if(Math.max(w,h) > maxEdge){
+        const s = maxEdge / Math.max(w,h);
+        w = Math.round(w*s); h = Math.round(h*s);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob 失敗')), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('圖片載入失敗')); };
+    img.src = url;
+  });
+}
 function sendLoc(){
   if(!navigator.geolocation){ alert('此裝置不支援定位功能'); return; }
   navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -967,7 +1011,7 @@ function pickMention(m, tokenStart){
 
 /* go */
 window.go = go;
-window.sendText = sendText; window.sendImg = sendImg; window.sendLoc = sendLoc;
+window.sendText = sendText; window.onPickImage = onPickImage; window.sendLoc = sendLoc;
 window.openSettings = openSettings; window.toggleDm = toggleDm; window.togglePush = togglePush; window.logout = logout;
 window.openMemberPicker = openMemberPicker;
 window.onGroupInput = onGroupInput; window.hideMentionPop = hideMentionPop;
