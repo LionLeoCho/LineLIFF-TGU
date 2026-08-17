@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>掃描 AirPods 觸發特效 Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:#0b132b; font-family:"PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
+
+  #start-overlay {
+    position:fixed; inset:0; z-index:20; background:#0b132b; color:#fff;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    gap:16px; text-align:center; padding:24px;
+  }
+  #start-overlay h1 { font-size:24px; margin:0; letter-spacing:2px; }
+  #start-overlay p { font-size:13px; color:#a9b4c2; line-height:1.8; max-width:320px; margin:0; }
+  #start-btn {
+    font-size:18px; padding:12px 44px; border:none; border-radius:999px;
+    background:#5bc0be; color:#0b132b; font-weight:700; letter-spacing:2px;
+  }
+
+  #cam-wrap { position:fixed; inset:0; }
+  video { width:100%; height:100%; object-fit:cover; }
+
+  #status {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10;
+    background:rgba(11,19,43,.75); color:#fff; padding:8px 18px;
+    border-radius:999px; font-size:13px; display:none;
+  }
+
+  /* 命中時的特效層 */
+  #fx {
+    position:fixed; inset:0; z-index:15; pointer-events:none;
+    display:none; justify-content:center; align-items:center; flex-direction:column;
+  }
+  #fx .badge {
+    background:rgba(11,19,43,.85); border:2px solid #5bc0be; border-radius:20px;
+    padding:20px 32px; text-align:center; color:#fff;
+    animation:pop .4s ease-out;
+  }
+  #fx .badge .big { font-size:34px; }
+  #fx .badge .title { font-size:20px; font-weight:700; margin-top:6px; letter-spacing:1px; }
+  #fx .badge .sub { font-size:13px; color:#5bc0be; margin-top:4px; }
+  @keyframes pop { from { transform:scale(.5); opacity:0; } to { transform:scale(1); opacity:1; } }
+
+  .confetti {
+    position:fixed; top:-20px; z-index:14; pointer-events:none;
+    font-size:24px; animation:fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform:translateY(110vh) rotate(720deg); opacity:.8; }
+  }
+</style>
+</head>
+<body>
+
+<div id="start-overlay">
+  <h1>🎧 掃描 AirPods 觸發特效</h1>
+  <p>
+    使用前請先到 Teachable Machine 訓練模型:<br/>
+    1. 開啟 teachablemachine.withgoogle.com → Image Project<br/>
+    2. Class 1 命名「airpods」:上傳 20~30 張 AirPods 照片(不同角度/背景)<br/>
+    3. Class 2 命名「background」:上傳 20~30 張沒有 AirPods 的環境照<br/>
+    4. Train → Export Model → Upload (shareable link)<br/>
+    5. 把得到的網址貼到本檔案的 MODEL_URL
+  </p>
+  <button id="start-btn">開始掃描</button>
+</div>
+
+<div id="cam-wrap"><video id="cam" autoplay playsinline muted></video></div>
+<div id="status">🔍 掃描中…把 AirPods 放進畫面</div>
+
+<div id="fx">
+  <div class="badge">
+    <div class="big">🎧✨</div>
+    <div class="title">偵測到 AirPods Pro!</div>
+    <div class="sub">領隊悄悄話頻道已解鎖 🎙️</div>
+  </div>
+</div>
+
+<script>
+  // ★★★ 把這裡換成你的 Teachable Machine 模型網址(結尾保留斜線) ★★★
+  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/XXXXXXXXX/";
+
+  const TARGET_CLASS = "airpods";  // 與你在 Teachable Machine 設定的類別名一致
+  const THRESHOLD = 0.85;          // 信心門檻,可調 0.7~0.95
+
+  let model, rafId;
+  let hitCooldown = false;
+
+  const video   = document.getElementById('cam');
+  const overlay = document.getElementById('start-overlay');
+  const status  = document.getElementById('status');
+  const fx      = document.getElementById('fx');
+
+  document.getElementById('start-btn').addEventListener('click', async () => {
+    overlay.innerHTML = '<p style="color:#fff">模型載入中…</p>';
+    try {
+      model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }, audio: false
+      });
+      video.srcObject = stream;
+      overlay.style.display = 'none';
+      status.style.display = 'block';
+      loop();
+    } catch (e) {
+      overlay.innerHTML = '<p style="color:#ff6b6b;padding:24px">載入失敗:' + e.message +
+        '<br/><br/>請確認 MODEL_URL 已換成你的模型網址,且用 HTTPS 開啟本頁。</p>';
+    }
+  });
+
+  async function loop() {
+    if (video.readyState >= 2) {
+      const preds = await model.predict(video);
+      const hit = preds.find(p => p.className === TARGET_CLASS);
+      if (hit && hit.probability >= THRESHOLD && !hitCooldown) {
+        triggerFX();
+      }
+      status.textContent = hit
+        ? `🔍 airpods 信心值:${(hit.probability * 100).toFixed(0)}%`
+        : '🔍 掃描中…';
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function triggerFX() {
+    hitCooldown = true;
+    fx.style.display = 'flex';
+    spawnConfetti();
+    if (navigator.vibrate) navigator.vibrate(200);
+    setTimeout(() => {
+      fx.style.display = 'none';
+      hitCooldown = false;   // 5 秒後可再次觸發
+    }, 5000);
+  }
+
+  function spawnConfetti() {
+    const emojis = ['🎉','✨','🎧','⭐','🎊'];
+    for (let i = 0; i < 30; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = Math.random() * 100 + 'vw';
+      el.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+      el.style.animationDelay = (Math.random() * .5) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 4000);
+    }
+  }
+</script>
+</body>
+</html>
