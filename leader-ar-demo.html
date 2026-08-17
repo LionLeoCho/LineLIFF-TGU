@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>領隊 AR 名牌 Demo</title>
+<!-- MindAR (image tracking) + A-Frame -->
+<script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1.5.0/dist/aframe-master.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; }
+
+  /* 開始畫面 */
+  #start-overlay {
+    position: fixed; inset: 0; z-index: 20;
+    background: #14213d;
+    color: #fff;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 24px; gap: 16px;
+  }
+  #start-overlay h1 { font-size: 26px; margin: 0; letter-spacing: 2px; }
+  #start-overlay p  { font-size: 14px; line-height: 1.7; color: #cdd5e0; max-width: 320px; margin: 0; }
+  #start-overlay a  { color: #fca311; }
+  #start-btn {
+    font-size: 18px; padding: 12px 40px; border: none; border-radius: 999px;
+    background: #fca311; color: #14213d; font-weight: 700; letter-spacing: 2px;
+  }
+
+  /* 掃描提示 */
+  #hint {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    z-index: 10; background: rgba(20,33,61,.75); color: #fff;
+    padding: 8px 18px; border-radius: 999px; font-size: 13px; display: none;
+  }
+
+  /* 口袋名單彈窗 */
+  #pocket-list {
+    position: fixed; inset: 0; z-index: 30; display: none;
+    background: rgba(0,0,0,.6);
+    justify-content: center; align-items: center; padding: 24px;
+  }
+  #pocket-list .card {
+    background: #fff; border-radius: 16px; padding: 24px; max-width: 320px; width: 100%;
+  }
+  #pocket-list h2 { margin: 0 0 12px; font-size: 18px; color: #14213d; }
+  #pocket-list li { margin-bottom: 8px; font-size: 14px; line-height: 1.6; }
+  #pocket-list button {
+    margin-top: 8px; width: 100%; padding: 10px; border: none; border-radius: 999px;
+    background: #14213d; color: #fff; font-size: 15px;
+  }
+</style>
+</head>
+<body>
+
+<div id="start-overlay">
+  <h1>🦁 領隊 AR 名牌</h1>
+  <p>按下開始後,把鏡頭對準這張<br/>
+     <a href="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.png" target="_blank">範例辨識圖(點我開啟,可用另一台裝置顯示)</a><br/>
+     皇冠與歡迎字卡就會浮出來!</p>
+  <button id="start-btn">開始體驗</button>
+</div>
+
+<div id="hint">📷 對準辨識圖…</div>
+
+<div id="pocket-list">
+  <div class="card">
+    <h2>🗺️ 領隊私房口袋名單</h2>
+    <ul>
+      <li>🍜 車站旁 60 年老麵店,下車 3 分鐘</li>
+      <li>☕ 隱藏版河岸咖啡,老闆是在地人</li>
+      <li>📸 拍夕陽的秘密平台,遊客不知道</li>
+    </ul>
+    <button onclick="document.getElementById('pocket-list').style.display='none'">關閉</button>
+  </div>
+</div>
+
+<a-scene
+  id="ar-scene"
+  mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/card-example/card.mind; autoStart: false;"
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights: true"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false">
+
+  <a-assets></a-assets>
+
+  <a-camera position="0 0 0" look-controls="enabled: false"
+            raycaster="objects: .clickable" cursor="fuse: false; rayOrigin: mouse;"></a-camera>
+
+  <a-entity mindar-image-target="targetIndex: 0">
+
+    <!-- 皇冠:三個金色圓錐 + 底環,持續旋轉漂浮 -->
+    <a-entity position="0 0.65 0"
+              animation="property: rotation; to: 0 360 0; dur: 6000; loop: true; easing: linear"
+              animation__float="property: position; from: 0 0.6 0; to: 0 0.75 0; dir: alternate; dur: 1500; loop: true; easing: easeInOutSine">
+      <a-torus radius="0.22" radius-tubular="0.03" color="#fca311" rotation="90 0 0"></a-torus>
+      <a-cone position="0 0.14 0"      radius-bottom="0.06" height="0.22" color="#fca311"></a-cone>
+      <a-cone position="0.16 0.12 0"   radius-bottom="0.05" height="0.16" color="#ffd166"></a-cone>
+      <a-cone position="-0.16 0.12 0"  radius-bottom="0.05" height="0.16" color="#ffd166"></a-cone>
+      <a-sphere position="0 0.28 0" radius="0.04" color="#e63946"></a-sphere>
+    </a-entity>
+
+    <!-- 歡迎字卡 -->
+    <a-plane position="0 -0.02 0.01" width="1" height="0.28" color="#14213d" opacity="0.85" radius="0.05"></a-plane>
+    <a-text value="Hi! I'm your Tour Leader" align="center" position="0 0.04 0.02"
+            width="1.6" color="#ffffff"></a-text>
+    <a-text value="Lion Travel" align="center" position="0 -0.08 0.02"
+            width="1.2" color="#fca311"></a-text>
+
+    <!-- 浮空按鈕:私房口袋名單 -->
+    <a-plane class="clickable" id="pocket-btn"
+             position="0 -0.42 0.01" width="0.72" height="0.18" color="#fca311"
+             animation__pulse="property: scale; from: 1 1 1; to: 1.07 1.07 1; dir: alternate; dur: 900; loop: true; easing: easeInOutSine"></a-plane>
+    <a-text value="Pocket List >" align="center" position="0 -0.42 0.02"
+            width="1.1" color="#14213d"></a-text>
+
+  </a-entity>
+</a-scene>
+
+<script>
+  const sceneEl = document.querySelector('#ar-scene');
+  const startBtn = document.getElementById('start-btn');
+  const overlay  = document.getElementById('start-overlay');
+  const hint     = document.getElementById('hint');
+
+  startBtn.addEventListener('click', async () => {
+    overlay.style.display = 'none';
+    hint.style.display = 'block';
+    const arSystem = sceneEl.systems['mindar-image-system'];
+    arSystem.start(); // 啟動相機與追蹤
+  });
+
+  sceneEl.addEventListener('targetFound', () => { hint.style.display = 'none'; });
+  sceneEl.addEventListener('targetLost',  () => { hint.style.display = 'block'; });
+
+  // 點擊浮空按鈕 → 顯示口袋名單
+  sceneEl.addEventListener('loaded', () => {
+    const btn = document.getElementById('pocket-btn');
+    btn.addEventListener('click', () => {
+      document.getElementById('pocket-list').style.display = 'flex';
+    });
+  });
+</script>
+</body>
+</html>
