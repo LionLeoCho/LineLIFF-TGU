@@ -3,125 +3,123 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>掃描 AirPods 觸發特效 Demo</title>
+<title>掃描 AirPods 觸發特效(免訓練版)</title>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 <style>
   html, body { margin:0; height:100%; background:#0b132b; font-family:"PingFang TC","Microsoft JhengHei",sans-serif; overflow:hidden; }
-
   #start-overlay {
     position:fixed; inset:0; z-index:20; background:#0b132b; color:#fff;
     display:flex; flex-direction:column; justify-content:center; align-items:center;
     gap:16px; text-align:center; padding:24px;
   }
-  #start-overlay h1 { font-size:24px; margin:0; letter-spacing:2px; }
+  #start-overlay h1 { font-size:22px; margin:0; letter-spacing:2px; }
   #start-overlay p { font-size:13px; color:#a9b4c2; line-height:1.8; max-width:320px; margin:0; }
+  #start-overlay img { width:120px; border-radius:12px; background:#fff; }
   #start-btn {
     font-size:18px; padding:12px 44px; border:none; border-radius:999px;
     background:#5bc0be; color:#0b132b; font-weight:700; letter-spacing:2px;
   }
-
   #cam-wrap { position:fixed; inset:0; }
   video { width:100%; height:100%; object-fit:cover; }
-
   #status {
     position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10;
-    background:rgba(11,19,43,.75); color:#fff; padding:8px 18px;
-    border-radius:999px; font-size:13px; display:none;
+    background:rgba(11,19,43,.78); color:#fff; padding:8px 18px;
+    border-radius:999px; font-size:13px; display:none; white-space:nowrap;
   }
-
-  /* 命中時的特效層 */
+  #ctrl {
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:10;
+    background:rgba(11,19,43,.78); color:#fff; padding:10px 18px;
+    border-radius:14px; font-size:12px; display:none; text-align:center;
+  }
+  #ctrl input { width:200px; }
   #fx {
     position:fixed; inset:0; z-index:15; pointer-events:none;
-    display:none; justify-content:center; align-items:center; flex-direction:column;
+    display:none; justify-content:center; align-items:center;
   }
   #fx .badge {
     background:rgba(11,19,43,.85); border:2px solid #5bc0be; border-radius:20px;
-    padding:20px 32px; text-align:center; color:#fff;
-    animation:pop .4s ease-out;
+    padding:20px 32px; text-align:center; color:#fff; animation:pop .4s ease-out;
   }
   #fx .badge .big { font-size:34px; }
-  #fx .badge .title { font-size:20px; font-weight:700; margin-top:6px; letter-spacing:1px; }
+  #fx .badge .title { font-size:20px; font-weight:700; margin-top:6px; }
   #fx .badge .sub { font-size:13px; color:#5bc0be; margin-top:4px; }
   @keyframes pop { from { transform:scale(.5); opacity:0; } to { transform:scale(1); opacity:1; } }
-
-  .confetti {
-    position:fixed; top:-20px; z-index:14; pointer-events:none;
-    font-size:24px; animation:fall linear forwards;
-  }
-  @keyframes fall {
-    to { transform:translateY(110vh) rotate(720deg); opacity:.8; }
-  }
+  .confetti { position:fixed; top:-20px; z-index:14; pointer-events:none; font-size:24px; animation:fall linear forwards; }
+  @keyframes fall { to { transform:translateY(110vh) rotate(720deg); opacity:.8; } }
 </style>
 </head>
 <body>
 
 <div id="start-overlay">
-  <h1>🎧 掃描 AirPods 觸發特效</h1>
-  <p>
-    使用前請先到 Teachable Machine 訓練模型:<br/>
-    1. 開啟 teachablemachine.withgoogle.com → Image Project<br/>
-    2. Class 1 命名「airpods」:上傳 20~30 張 AirPods 照片(不同角度/背景)<br/>
-    3. Class 2 命名「background」:上傳 20~30 張沒有 AirPods 的環境照<br/>
-    4. Train → Export Model → Upload (shareable link)<br/>
-    5. 把得到的網址貼到本檔案的 MODEL_URL
-  </p>
+  <h1>🎧 AirPods 偵測(免訓練版)</h1>
+  <img id="ref-img" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAG/Ab8DASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD7LooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACim7l/vCnUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRTdy0u6gBaKbvX+8KXdQAtFJupaACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKbIyqvzVFmSX/ZWgCRnVfvU3ezr8q7f96iNFX7q1JQBGsbEcyNSiKP8Au0+lHSgCPyo/7i0jRR/3alooAi8tl+41G9l++v8AwJakaigBFZWXctOqJo/m3I21qWN8/Ky7WoAkooooAKKKKACiiigAoqGaZY/9puy1F++m+bdtWgCw0qrUe+RvuR7f96iOJV+b+KploAj8tj96Rq+bvir8OfjDf6jd3Np4nuNcsJJnkigt7lrRo03fLH5asqtt/vbv4f8Aa+X6Vpu1aAPg6+8L/E7SJla70fxpbsu7a0HnyKv/AAKH5V/8d/3mqpp/jbx1ot15Nt4w1y1ni/eeRczszR/70cn3f7vzbv8AgNffjfNVPVdM03VbX7Nqen2t9B/cuIlkX/x6gD5H8NftBfEPSpIl1FdL1u3D/Mjrtmdf7qvH93/v23/s1ey+Avj74O8RGK11RJ/Dt6/RbxW+z/hNtC/99bfSneM/gL4J1yOR9Njm0G8bo9qd8f8AwKJvl2/7u3/erwL4k/B7xN4Ljlvrizh1DTYvmbUbO3+WP/aZd26P/e+ZV/vUAfa8Msc8ayRMskbrlXU5VhU1fCfw3+Jni34eyRxabcR6hpPbTrmRlj/7Z/e8v5v4l+VdzfK22vrj4Z/ETQfiBpL3mkSTRzQ4+02s6bJIm/8AifegDtKKRaWgAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACopJdvyr8z1HNLuZo4/vf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FFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH/9k=" alt="參考圖" />
+  <p>已內建上方參考圖的特徵向量。<br/>按下開始後,鏡頭掃到相似畫面(AirPods)就會觸發特效。<br/>可用下方滑桿即時調整靈敏度。</p>
   <button id="start-btn">開始掃描</button>
 </div>
 
 <div id="cam-wrap"><video id="cam" autoplay playsinline muted></video></div>
-<div id="status">🔍 掃描中…把 AirPods 放進畫面</div>
+<div id="status">🔍 掃描中…</div>
+<div id="ctrl">
+  觸發門檻:<span id="th-val">0.55</span><br/>
+  <input id="th" type="range" min="0.30" max="0.90" step="0.01" value="0.55" />
+</div>
 
 <div id="fx">
   <div class="badge">
     <div class="big">🎧✨</div>
-    <div class="title">偵測到 AirPods Pro!</div>
+    <div class="title">偵測到 AirPods!</div>
     <div class="sub">領隊悄悄話頻道已解鎖 🎙️</div>
   </div>
 </div>
 
 <script>
-  // ★★★ 把這裡換成你的 Teachable Machine 模型網址(結尾保留斜線) ★★★
-  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/XXXXXXXXX/";
-
-  const TARGET_CLASS = "airpods";  // 與你在 Teachable Machine 設定的類別名一致
-  const THRESHOLD = 0.85;          // 信心門檻,可調 0.7~0.95
-
-  let model, rafId;
-  let hitCooldown = false;
+  let net, refEmbedding, rafId, hitCooldown = false;
+  let threshold = 0.55;
 
   const video   = document.getElementById('cam');
   const overlay = document.getElementById('start-overlay');
   const status  = document.getElementById('status');
+  const ctrl    = document.getElementById('ctrl');
   const fx      = document.getElementById('fx');
+  const refImg  = document.getElementById('ref-img');
+
+  document.getElementById('th').addEventListener('input', e => {
+    threshold = parseFloat(e.target.value);
+    document.getElementById('th-val').textContent = threshold.toFixed(2);
+  });
 
   document.getElementById('start-btn').addEventListener('click', async () => {
-    overlay.innerHTML = '<p style="color:#fff">模型載入中…</p>';
+    overlay.querySelector('p').textContent = '模型載入中…(第一次約 5~10 秒)';
     try {
-      model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+      net = await mobilenet.load({ version: 2, alpha: 1.0 });
+      // 計算參考圖 embedding(L2 normalize)
+      refEmbedding = tf.tidy(() => {
+        const emb = net.infer(refImg, true);
+        return emb.div(emb.norm());
+      });
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" }, audio: false
       });
       video.srcObject = stream;
       overlay.style.display = 'none';
       status.style.display = 'block';
+      ctrl.style.display = 'block';
       loop();
     } catch (e) {
-      overlay.innerHTML = '<p style="color:#ff6b6b;padding:24px">載入失敗:' + e.message +
-        '<br/><br/>請確認 MODEL_URL 已換成你的模型網址,且用 HTTPS 開啟本頁。</p>';
+      overlay.querySelector('p').textContent = '載入失敗:' + e.message + '(請確認以 HTTPS 開啟並允許相機)';
     }
   });
 
   async function loop() {
     if (video.readyState >= 2) {
-      const preds = await model.predict(video);
-      const hit = preds.find(p => p.className === TARGET_CLASS);
-      if (hit && hit.probability >= THRESHOLD && !hitCooldown) {
-        triggerFX();
-      }
-      status.textContent = hit
-        ? `🔍 airpods 信心值:${(hit.probability * 100).toFixed(0)}%`
-        : '🔍 掃描中…';
+      const sim = tf.tidy(() => {
+        const emb = net.infer(video, true);
+        const normed = emb.div(emb.norm());
+        return normed.mul(refEmbedding).sum().dataSync()[0];
+      });
+      status.textContent = `🔍 相似度:${(sim * 100).toFixed(0)}%(門檻 ${(threshold*100).toFixed(0)}%)`;
+      if (sim >= threshold && !hitCooldown) triggerFX();
     }
     rafId = requestAnimationFrame(loop);
   }
@@ -131,10 +129,7 @@
     fx.style.display = 'flex';
     spawnConfetti();
     if (navigator.vibrate) navigator.vibrate(200);
-    setTimeout(() => {
-      fx.style.display = 'none';
-      hitCooldown = false;   // 5 秒後可再次觸發
-    }, 5000);
+    setTimeout(() => { fx.style.display = 'none'; hitCooldown = false; }, 5000);
   }
 
   function spawnConfetti() {
