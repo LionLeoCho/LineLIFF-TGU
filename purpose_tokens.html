@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 年 9 月：依用途的 Token 佔比</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --note-bg: #fffbeb;
+  --note-border: #fcd34d;
+  --note-text: #b45309;
+  --bg: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #334155;
+    --note-bg: #422006;
+    --note-border: #ca8a04;
+    --note-text: #fde68a;
+    --bg: #0f172a;
+  }
+}
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+.wrap { max-width: 56rem; margin: 0 auto; padding: 1.25rem 1rem 2.5rem; }
+h1 { font-size: clamp(1.35rem, 2.5vw, 1.75rem); margin: 0 0 0.75rem; font-weight: 700; }
+.lead { color: var(--muted); margin: 0 0 1rem; font-size: 0.95rem; }
+.note {
+  font-size: 0.875rem;
+  color: var(--note-text);
+  background: var(--note-bg);
+  border: 1px solid var(--note-border);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  margin: 0 0 1.25rem;
+}
+.chart-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin: 0 0 1.5rem;
+}
+.pie-svg { width: min(100%, 260px); height: auto; flex: 0 0 auto; }
+.pie-legend {
+  list-style: none; margin: 0; padding: 0;
+  flex: 1 1 16rem; min-width: 14rem;
+}
+.pie-legend-item {
+  display: grid;
+  grid-template-columns: 1rem 1fr auto auto;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+  font-size: 0.875rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.pie-swatch { width: 0.75rem; height: 0.75rem; border-radius: 2px; display: inline-block; }
+.pie-legend-label { font-weight: 500; }
+.pie-legend-count, .pie-legend-pct { font-variant-numeric: tabular-nums; }
+.pie-legend-pct { color: var(--muted); }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 0.5rem; }
+.token-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 44rem; }
+.token-table th, .token-table td { padding: 0.45rem 0.55rem; text-align: right; border-bottom: 1px solid var(--border); }
+.token-table th:first-child, .token-table td:first-child { text-align: left; }
+.token-table thead th { background: color-mix(in srgb, var(--border) 35%, transparent); font-weight: 600; }
+.token-table tr.totals { font-weight: 700; }
+.num { font-variant-numeric: tabular-nums; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>2026 年 9 月：依用途的 Token 佔比</h1>
+<p class="lead">統計範圍：2026 年 9 月（Asia/Taipei），去重後 35,358 筆 Copilot 助手紀錄，包含未納入 TL 與用途待確認部分。</p>
+<p><strong>含快取 token 佔比：</strong>各用途的輸入＋輸出＋快取讀取＋快取寫入，除以全部 12,281,146,238 tokens。</p>
+<p><strong>快取讀取占總量 96.47%。</strong>若想排除快取讀寫，請看表格最右側的「僅輸入＋輸出佔比」；其分母為 193,369,356 tokens。兩欄口徑不同，不相加。</p>
+<p>另有 349 筆零 token 紀錄，保留紀錄數但無法量測其實際用量。來源不明的 compaction 用量未納入。</p>
+<p class="note">本頁為 token 分量佔比，未做帳單金額正規化或成本權重。cache_read 可能在多次請求重複計入，不等於唯一內容或工程工時；與費用用途圖互補但不可相加解讀。 ledger total_tokens 與四分量不一致者共 0 筆。 百分比顯示至小數點後二位，四捨五入後各列相加可能略有偏差；合計依未四捨五入數值計算。</p>
+<section aria-labelledby="chart-heading">
+<h2 id="chart-heading" class="sr-only">用途圓餅圖</h2>
+<div class="chart-layout">
+<svg id="purpose-token-pie" class="pie-svg" viewBox="0 0 240 240" role="img" aria-labelledby="purpose-token-pie-title purpose-token-pie-desc"><title id="purpose-token-pie-title">2026 年 9 月：依用途的 Token 佔比（全量 assistant turns）</title><desc id="purpose-token-pie-desc">七個互斥用途分組，含快取總 token 為 12,281,146,238。</desc><path d="M 120.00,120.00 L 120.00,20.00 A 100.00,100.00 0 0,1 195.38,54.29 Z" fill="#6366F1" stroke="#ffffff" stroke-width="1"><title>Figma／規格：1,668,860,906（13.59%）</title></path><path d="M 120.00,120.00 L 195.38,54.29 A 100.00,100.00 0 0,1 200.31,179.58 Z" fill="#0EA5E9" stroke="#ffffff" stroke-width="1"><title>開發實作：2,648,985,565（21.57%）</title></path><path d="M 120.00,120.00 L 200.31,179.58 A 100.00,100.00 0 0,1 86.03,214.05 Z" fill="#10B981" stroke="#ffffff" stroke-width="1"><title>可辨識的測試／驗收相關作業：2,500,192,581（20.36%）</title></path><path d="M 120.00,120.00 L 86.03,214.05 A 100.00,100.00 0 0,1 20.80,132.61 Z" fill="#8B5CF6" stroke="#ffffff" stroke-width="1"><title>進度與其他作業：2,145,589,805（17.47%）</title></path><path d="M 120.00,120.00 L 20.80,132.61 A 100.00,100.00 0 0,1 20.23,126.72 Z" fill="#14B8A6" stroke="#ffffff" stroke-width="1"><title>API／共用工具／workspace 支援：115,785,666（0.94%）</title></path><path d="M 120.00,120.00 L 20.23,126.72 A 100.00,100.00 0 0,1 107.08,20.84 Z" fill="#F59E0B" stroke="#ffffff" stroke-width="1"><title>混合／用途待確認：2,948,498,567（24.01%）</title></path><path d="M 120.00,120.00 L 107.08,20.84 A 100.00,100.00 0 0,1 120.00,20.00 Z" fill="#94A3B8" stroke="#ffffff" stroke-width="1"><title>未納入 TL 範圍：253,233,148（2.06%）</title></path></svg>
+<ul class="pie-legend"><li class="pie-legend-item"><span class="pie-swatch" style="background:#6366F1"></span><span class="pie-legend-label">Figma／規格</span><span class="pie-legend-count">1,668,860,906</span><span class="pie-legend-pct">13.59%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#0EA5E9"></span><span class="pie-legend-label">開發實作</span><span class="pie-legend-count">2,648,985,565</span><span class="pie-legend-pct">21.57%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#10B981"></span><span class="pie-legend-label">可辨識的測試／驗收相關作業</span><span class="pie-legend-count">2,500,192,581</span><span class="pie-legend-pct">20.36%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#8B5CF6"></span><span class="pie-legend-label">進度與其他作業</span><span class="pie-legend-count">2,145,589,805</span><span class="pie-legend-pct">17.47%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#14B8A6"></span><span class="pie-legend-label">API／共用工具／workspace 支援</span><span class="pie-legend-count">115,785,666</span><span class="pie-legend-pct">0.94%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#F59E0B"></span><span class="pie-legend-label">混合／用途待確認</span><span class="pie-legend-count">2,948,498,567</span><span class="pie-legend-pct">24.01%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#94A3B8"></span><span class="pie-legend-label">未納入 TL 範圍</span><span class="pie-legend-count">253,233,148</span><span class="pie-legend-pct">2.06%</span></li></ul>
+</div>
+</section>
+<section aria-labelledby="table-heading">
+<h2 id="table-heading" style="font-size:1.125rem;margin:0 0 0.65rem;">分量與佔比表</h2>
+<div class="table-scroll"><table class="token-table"><caption class="sr-only">七用途 token 分量與佔比</caption><thead><tr><th scope="col">用途</th><th scope="col">助手紀錄數</th><th scope="col">輸入</th><th scope="col">輸出</th><th scope="col">快取讀取</th><th scope="col">快取寫入</th><th scope="col">含快取總 token</th><th scope="col">含快取佔比</th><th scope="col">僅輸入＋輸出</th><th scope="col">僅輸入＋輸出佔比</th></tr></thead><tbody><tr><th scope="row">Figma／規格</th><td class="num">4,637</td><td class="num">23,217,394</td><td class="num">2,091,249</td><td class="num">1,608,445,421</td><td class="num">35,106,842</td><td class="num">1,668,860,906</td><td class="num">13.59%</td><td class="num">25,308,643</td><td class="num">13.09%</td></tr><tr><th scope="row">開發實作</th><td class="num">7,039</td><td class="num">33,741,863</td><td class="num">2,952,761</td><td class="num">2,568,522,382</td><td class="num">43,768,559</td><td class="num">2,648,985,565</td><td class="num">21.57%</td><td class="num">36,694,624</td><td class="num">18.98%</td></tr><tr><th scope="row">可辨識的測試／驗收相關作業</th><td class="num">7,189</td><td class="num">35,170,020</td><td class="num">2,819,153</td><td class="num">2,419,047,325</td><td class="num">43,156,083</td><td class="num">2,500,192,581</td><td class="num">20.36%</td><td class="num">37,989,173</td><td class="num">19.65%</td></tr><tr><th scope="row">進度與其他作業</th><td class="num">5,194</td><td class="num">32,365,720</td><td class="num">2,075,166</td><td class="num">2,047,486,526</td><td class="num">63,662,393</td><td class="num">2,145,589,805</td><td class="num">17.47%</td><td class="num">34,440,886</td><td class="num">17.81%</td></tr><tr><th scope="row">API／共用工具／workspace 支援</th><td class="num">794</td><td class="num">4,683,054</td><td class="num">222,963</td><td class="num">110,447,799</td><td class="num">431,850</td><td class="num">115,785,666</td><td class="num">0.94%</td><td class="num">4,906,017</td><td class="num">2.54%</td></tr><tr><th scope="row">混合／用途待確認</th><td class="num">10,000</td><td class="num">46,849,481</td><td class="num">3,976,440</td><td class="num">2,850,500,532</td><td class="num">47,172,114</td><td class="num">2,948,498,567</td><td class="num">24.01%</td><td class="num">50,825,921</td><td class="num">26.28%</td></tr><tr><th scope="row">未納入 TL 範圍</th><td class="num">505</td><td class="num">2,930,704</td><td class="num">273,388</td><td class="num">243,663,791</td><td class="num">6,365,265</td><td class="num">253,233,148</td><td class="num">2.06%</td><td class="num">3,204,092</td><td class="num">1.66%</td></tr><tr class="totals"><th scope="row">合計</th><td class="num">35,358</td><td class="num">178,958,236</td><td class="num">14,411,120</td><td class="num">11,848,113,776</td><td class="num">239,663,106</td><td class="num">12,281,146,238</td><td class="num">100.00%</td><td class="num">193,369,356</td><td class="num">100.00%</td></tr></tbody></table></div>
+</section>
+</div>
+</body>
+</html>
