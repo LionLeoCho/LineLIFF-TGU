@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 年 9 月 AI 開發工具替代方案費用評估</title>
+<style>
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --text: #1a2332;
+  --muted: #5c6773;
+  --border: #d8dee6;
+  --accent: #2563eb;
+  --warn-bg: #fff4e5;
+  --warn-border: #e6a23c;
+  --warn-text: #7a4b00;
+  --amber-bg: #fff8e6;
+  --amber-border: #f0b429;
+  --amber-text: #8a5a00;
+  --emphasis-bg: #eef2ff;
+  --good-bg: #ecfdf5;
+  --good-border: #10b981;
+  --good-text: #065f46;
+  --shadow: 0 1px 3px rgba(26, 35, 50, 0.08);
+  --radius: 10px;
+  --space: 1.25rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  font-size: 16px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: calc(var(--space) * 2) var(--space) calc(var(--space) * 3); }
+header { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space); margin-bottom: calc(var(--space) * 1.5); }
+h1 { margin: 0 0 0.35rem; font-size: 1.65rem; font-weight: 650; letter-spacing: -0.02em; }
+h2 { font-size: 1.3rem; margin: 0 0 0.35rem; }
+h3 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; }
+.subtitle { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.toolbar { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.toolbar a { color: var(--accent); text-decoration: none; font-size: 0.95rem; }
+.toolbar a:hover { text-decoration: underline; }
+button.print-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 0.55rem 1rem; border-radius: 8px; font: inherit; cursor: pointer; box-shadow: var(--shadow); }
+button.print-btn:hover { border-color: var(--accent); color: var(--accent); }
+.warning { background: var(--warn-bg); border: 2px solid var(--warn-border); border-radius: var(--radius); padding: calc(var(--space) * 0.85) var(--space); margin-bottom: calc(var(--space) * 1.5); color: var(--warn-text); }
+.warning strong { display: block; font-size: 1.05rem; margin-bottom: 0.35rem; color: #5c3a00; }
+.good { background: var(--good-bg); border: 2px solid var(--good-border); border-radius: var(--radius); padding: calc(var(--space) * 0.85) var(--space); margin: var(--space) 0; color: var(--good-text); }
+.good strong { display: block; font-size: 1.05rem; margin-bottom: 0.35rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space); margin-bottom: calc(var(--space) * 1.75); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: calc(var(--space) * 1.1); box-shadow: var(--shadow); }
+.card-label { font-size: 0.82rem; letter-spacing: 0.02em; color: var(--muted); margin-bottom: 0.35rem; }
+.card-value { font-size: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.card-sub { margin-top: 0.35rem; color: var(--muted); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.table-shell { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; min-width: 820px; }
+thead th { position: sticky; top: 0; z-index: 2; background: #eef1f6; text-align: left; font-size: 0.82rem; font-weight: 600; color: var(--muted); padding: 0.85rem 1rem; border-bottom: 2px solid var(--border); white-space: nowrap; }
+tbody td, tbody th { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; text-align: left; font-weight: 400; }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: none; }
+.num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { min-width: 220px; max-width: 460px; color: var(--muted); font-size: 0.92rem; line-height: 1.45; }
+.row-emphasis td, .row-emphasis th { font-weight: 650; background: var(--emphasis-bg); }
+.row-current td, .row-current th { background: #fafbfc; }
+.row-best td, .row-best th { background: var(--good-bg); font-weight: 650; }
+.qa-unknown td, .qa-unknown th { background: var(--amber-bg) !important; color: var(--amber-text); border-top: 1px solid var(--amber-border); border-bottom: 1px solid var(--amber-border); }
+.footnotes { margin-top: calc(var(--space) * 1.5); display: grid; gap: var(--space); }
+.footnote { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space); font-size: 0.92rem; color: var(--muted); }
+.footnote h2, .footnote h3 { margin: 0 0 0.35rem; font-size: 0.95rem; color: var(--text); }
+.footnote p { margin: 0.35rem 0; }
+.footnote ul { margin: 0.35rem 0 0.35rem 1.2rem; padding: 0; }
+.footer-note { margin-top: calc(var(--space) * 2); font-size: 0.85rem; color: var(--muted); }
+code { font-size: 0.9em; background: #eef1f6; padding: 0.05em 0.35em; border-radius: 4px; }
+
+/* Bar chart */
+.bar-chart { font-family: inherit; color: #0f172a; margin: 1.25rem 0; }
+.bar-chart .chart-note { font-size: 0.875rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 46rem; color: #b45309; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 0.375rem; padding: 0.5rem 0.75rem; }
+.bar-chart .chart-desc { font-size: 0.875rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 46rem; color: var(--muted); }
+.bars { display: grid; gap: 0.45rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space); box-shadow: var(--shadow); }
+.bar-row { display: grid; grid-template-columns: minmax(10rem, 17rem) 1fr auto; gap: 0.75rem; align-items: center; font-size: 0.875rem; }
+.bar-label { font-weight: 500; }
+.bar-track { height: 1.1rem; background: #eef1f6; border-radius: 4px; overflow: hidden; position: relative; }
+.bar-fill { height: 100%; border-radius: 4px; }
+.bar-fill.range { position: absolute; top: 0; opacity: 0.35; }
+.bar-val { font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 7.5rem; text-align: right; }
+.bar-group-title { font-size: 0.8rem; color: var(--muted); margin: 0.6rem 0 0.1rem; letter-spacing: 0.02em; }
+.bar-group-title:first-child { margin-top: 0; }
+.legend-inline { display: flex; flex-wrap: wrap; gap: 1rem; font-size: 0.8rem; color: var(--muted); margin-top: 0.75rem; }
+.legend-inline span::before { content: ""; display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 2px; margin-right: 0.35rem; vertical-align: -1px; background: var(--sw); }
+
+/* Stacked composition */
+.stack { display: grid; gap: 0.5rem; }
+.stack-row { display: grid; grid-template-columns: minmax(8rem, 12rem) 1fr; gap: 0.75rem; align-items: center; font-size: 0.875rem; }
+.stack-bar { display: flex; height: 1.25rem; border-radius: 4px; overflow: hidden; background: #eef1f6; }
+.stack-seg { height: 100%; }
+@media (max-width: 640px) {
+  .bar-row { grid-template-columns: 1fr; gap: 0.25rem; }
+  .bar-val { text-align: left; }
+  .stack-row { grid-template-columns: 1fr; }
+}
+@media print {
+  body { background: #fff; }
+  .wrap { max-width: none; padding: 0.5in; }
+  .toolbar button { display: none !important; }
+  .table-shell, .card, .warning, .footnote, .bars, .good { box-shadow: none; break-inside: avoid; }
+  thead th { position: static; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>2026 年 9 月 AI 開發工具替代方案費用評估</h1>
+      <p class="subtitle">以九月 Copilot 的 token 分量（<code>purpose_tokens.html</code>）套用各供應商 2026-10-01 公告牌價重算；比較 Claude、Codex／OpenAI API、Cursor 與 Mac mini 地端，並評估模型分級下修情境。</p>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="print-btn" id="print-btn">列印／另存 PDF</button>
+    </div>
+  </header>
+
+  <div class="warning" role="alert">
+    <strong>注意：以下皆為依公告牌價的推估，並非報價或已核實帳單</strong>
+    <p style="margin:0.5rem 0 0">計算基礎為九月去重後 35,358 筆助手紀錄的四項 token 分量（輸入 178.96M、輸出 14.41M、快取讀取 11,848.11M、快取寫入 239.66M，合計 12,281,146,238 tokens），假設改用其他工具後 token 用量不變。未計入企業折扣、區域處理加價（OpenAI 公告對區域端點加收 10%）、席位費以外的平台抽成，以及模型更換後可能的返工差異。<strong>各方案金額是同一組 token 的不同牌價試算，不可相加。</strong></p>
+  </div>
+
+  <section class="cards" aria-label="重點數字">
+    <article class="card">
+      <div class="card-label">目前 Copilot（使用者提供）</div>
+      <div class="card-value">$20,000</div>
+      <div class="card-sub">以 Copilot 牌價（≤272K 級距）重算僅約 $10,227，落差見第一節</div>
+    </article>
+    <article class="card">
+      <div class="card-label">同等級模型改用 Claude API（全 Opus 5.5）</div>
+      <div class="card-value">$4,572</div>
+      <div class="card-sub">約為目前費用的 23%；Claude 無長上下文加價</div>
+    </article>
+    <article class="card">
+      <div class="card-label">模型分級＋減少 30% 快取讀取（Claude）</div>
+      <div class="card-value">$2,788</div>
+      <div class="card-sub">約為目前費用的 14%；分級比例為假設，需實測驗證</div>
+    </article>
+  </section>
+
+  <nav class="toolbar" aria-label="報告章節" style="margin-bottom:1.5rem">
+    <a href="#sec-recon">一、現況對帳</a>
+    <a href="#sec-alt">二、同等級替代方案</a>
+    <a href="#sec-local">三、Mac mini 地端</a>
+    <a href="#sec-tier">四、模型分級下修</a>
+    <a href="#sec-conclusion">五、結論與建議</a>
+  </nav>
+
+  <!-- ===================== 一、現況對帳 ===================== -->
+  <section aria-labelledby="sec-recon" style="margin-top:2rem">
+    <h2 id="sec-recon">一、現況對帳：$20,000 與牌價重算的落差</h2>
+    <p class="subtitle">把九月各模型的成本份額換算成 token 份額，再乘以 Copilot 公告的每百萬 token 牌價。</p>
+
+    <div class="table-shell" style="margin-top:1rem">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">模型（session 記錄名稱）</th>
+              <th scope="col">Copilot 牌價 輸入／快取讀取／快取寫入／輸出（US$/M）</th>
+              <th scope="col">推算 token 份額</th>
+              <th scope="col">報告分攤（佔 $20,000）</th>
+              <th scope="col">牌價重算（≤272K）</th>
+              <th scope="col">說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">gpt-6-astra</th><td class="num">10 / 1.00 / 12.50 / 50</td><td class="num">26.8%</td><td class="num">$9,106.97</td><td class="num">$4,656</td><td class="note">快取讀取每百萬 $1.00，是本期各模型中最貴者</td></tr>
+            <tr><th scope="row">gpt-5.5</th><td class="num">5 / 0.50 / — / 30</td><td class="num">47.2%</td><td class="num">$7,799.22</td><td class="num">$3,988</td><td class="note">Copilot 牌價未列快取寫入，以輸入價代入</td></tr>
+            <tr><th scope="row">claude-opus-4-7</th><td class="num">5 / 0.50 / 6.25 / 25</td><td class="num">7.9%</td><td class="num">$1,341.62</td><td class="num">$686</td><td class="note">含 Opus 4.7 拼字別名</td></tr>
+            <tr><th scope="row">claude-opus-5</th><td class="num">5 / 0.50 / 6.25 / 25</td><td class="num">5.2%</td><td class="num">$880.27</td><td class="num">$450</td><td class="note"></td></tr>
+            <tr><th scope="row">gpt-6-sol</th><td class="num">2 / 0.20 / 2.50 / 10</td><td class="num">12.8%</td><td class="num">$869.76</td><td class="num">$445</td><td class="note"></td></tr>
+            <tr><th scope="row">gemini-3.8-flash</th><td class="num">0.75 / 0.075 / — / 3.75</td><td class="num">0.1%</td><td class="num">$1.38</td><td class="num">$1</td><td class="note">促銷價至 2026-12-31</td></tr>
+            <tr><th scope="row">claude-opus-4-6</th><td class="num">5 / 0.50 / 6.25 / 25</td><td class="num">0.0%</td><td class="num">$0.77</td><td class="num">$0</td><td class="note"></td></tr>
+            <tr class="row-emphasis"><th scope="row">合計</th><td></td><td class="num">100%</td><td class="num">$20,000.00</td><td class="num">$10,227</td><td class="note">牌價重算約為提供總額的 51%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footnotes" style="margin-top:1.25rem">
+      <article class="footnote">
+        <h3>落差的兩個可能解釋</h3>
+        <ul>
+          <li><strong>大量請求超過 272K tokens。</strong>Copilot 對 OpenAI 模型在 &gt;272K 級距約加倍收費（Astra 20 / 2.00 / 25 / 75）。若多數請求落在高級距，重算金額約 $20,450，與提供總額幾乎吻合。長對話反覆讀取上下文正是本期 96.5% 快取讀取的來源，此解釋可能性較高。</li>
+          <li><strong>$20,000 含本機紀錄以外的用量。</strong>例如團隊其他成員、Copilot code review（每次 13 個 premium request）、雲端代理等未納入 session 紀錄的項目。</li>
+        </ul>
+        <p><strong>對比較的影響：</strong>Claude 對 4.6 以後的模型不收長上下文加價（1M context 皆為標準價）；因此本期若真的多為長上下文請求，改用 Claude 的實際節省幅度會比下表保守值更大。OpenAI 牌價同樣有 &gt;272K 加倍級距。</p>
+        <p><strong>驗證方式：</strong>向 GitHub 帳單後台調出九月依模型、依級距的實際 token 計費明細，與本表對帳。</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== 二、同等級替代方案 ===================== -->
+  <section aria-labelledby="sec-alt" style="margin-top:2.5rem">
+    <h2 id="sec-alt">二、同等級模型的替代方案比較</h2>
+    <p class="subtitle">假設工作內容與 token 用量不變，只換供應商與計費方式。先看單一旗艦模型跑完全部用量的成本，再看各工具的席位與計費模式。</p>
+
+    <section class="bar-chart" aria-labelledby="alt-chart-heading">
+      <h3 id="alt-chart-heading">全部 12.28B tokens 以單一模型計價（US$/月）</h3>
+      <p class="chart-note">依 Anthropic 與 OpenAI 2026-10-01 公告 API 牌價（≤272K 級距）試算，<strong>為推估而非報價</strong>。淡色延伸段表示若用量多在 &gt;272K 級距時，OpenAI 模型的上限（約加倍）；Claude 無此級距。</p>
+      <div class="bars">
+        <div class="bar-group-title">目前</div>
+        <div class="bar-row"><span class="bar-label">Copilot 現況（提供總額）</span><div class="bar-track"><div class="bar-fill" style="width:59.7%;background:#94A3B8"></div></div><span class="bar-val">$20,000</span></div>
+        <div class="bar-group-title">OpenAI 牌價</div>
+        <div class="bar-row"><span class="bar-label">GPT-6 Astra（旗艦）</span><div class="bar-track"><div class="bar-fill range" style="width:100%;background:#2563EB"></div><div class="bar-fill" style="width:50%;background:#2563EB"></div></div><span class="bar-val">$16,755 ～ $33.5K</span></div>
+        <div class="bar-row"><span class="bar-label">GPT-6.1 Sol（中階）</span><div class="bar-track"><div class="bar-fill range" style="width:12.9%;background:#7C3AED"></div><div class="bar-fill" style="width:6.5%;background:#7C3AED"></div></div><span class="bar-val">$2,166 ～ $4.3K</span></div>
+        <div class="bar-row"><span class="bar-label">GPT-6 Luna（輕量）</span><div class="bar-track"><div class="bar-fill range" style="width:1%;background:#0891B2"></div><div class="bar-fill" style="width:0.5%;background:#0891B2"></div></div><span class="bar-val">$168 ～ $335</span></div>
+        <div class="bar-group-title">Anthropic 牌價（無長上下文加價）</div>
+        <div class="bar-row"><span class="bar-label">Claude Opus 5.5（旗艦）</span><div class="bar-track"><div class="bar-fill" style="width:13.6%;background:#DB2777"></div></div><span class="bar-val">$4,572</span></div>
+        <div class="bar-row"><span class="bar-label">Claude Sonnet 5.5（中階）</span><div class="bar-track"><div class="bar-fill" style="width:10.4%;background:#059669"></div></div><span class="bar-val">$3,471</span></div>
+        <div class="bar-row"><span class="bar-label">Claude Haiku 4.5（輕量）</span><div class="bar-track"><div class="bar-fill" style="width:5.2%;background:#10B981"></div></div><span class="bar-val">$1,735</span></div>
+      </div>
+      <p class="chart-desc" style="margin-top:0.75rem">GPT-6 Astra 與 Claude Opus 5.5 都是各家旗艦；同樣的 token 量差了 3.7 倍，主因是快取讀取單價（$1.00 對 $0.20）——本期 96.5% 的 token 都是快取讀取。</p>
+    </section>
+
+    <h3>快取讀取在各模型成本中的佔比</h3>
+    <p class="subtitle" style="margin-bottom:0.75rem">同一組 token 在不同模型下，四項分量的成本組成。</p>
+    <div class="bars">
+      <div class="stack">
+        <div class="stack-row"><span>GPT-6 Astra</span><div class="stack-bar" title="輸入 11%／快取讀取 71%／快取寫入 14%／輸出 4%"><div class="stack-seg" style="width:10.7%;background:#2563EB"></div><div class="stack-seg" style="width:70.7%;background:#93C5FD"></div><div class="stack-seg" style="width:14.3%;background:#1E40AF"></div><div class="stack-seg" style="width:4.3%;background:#0F172A"></div></div></div>
+        <div class="stack-row"><span>GPT-6.1 Sol</span><div class="stack-bar" title="輸入 17%／快取讀取 55%／快取寫入 22%／輸出 7%"><div class="stack-seg" style="width:16.5%;background:#2563EB"></div><div class="stack-seg" style="width:54.7%;background:#93C5FD"></div><div class="stack-seg" style="width:22.1%;background:#1E40AF"></div><div class="stack-seg" style="width:6.7%;background:#0F172A"></div></div></div>
+        <div class="stack-row"><span>Claude Opus 5.5</span><div class="stack-bar" title="輸入 16%／快取讀取 52%／快取寫入 26%／輸出 6%"><div class="stack-seg" style="width:15.7%;background:#2563EB"></div><div class="stack-seg" style="width:51.8%;background:#93C5FD"></div><div class="stack-seg" style="width:26.2%;background:#1E40AF"></div><div class="stack-seg" style="width:6.3%;background:#0F172A"></div></div></div>
+        <div class="stack-row"><span>Claude Sonnet 5.5</span><div class="stack-bar" title="輸入 10%／快取讀取 68%／快取寫入 17%／輸出 4%"><div class="stack-seg" style="width:10.3%;background:#2563EB"></div><div class="stack-seg" style="width:68.3%;background:#93C5FD"></div><div class="stack-seg" style="width:17.3%;background:#1E40AF"></div><div class="stack-seg" style="width:4.2%;background:#0F172A"></div></div></div>
+      </div>
+      <div class="legend-inline">
+        <span style="--sw:#2563EB">輸入</span>
+        <span style="--sw:#93C5FD">快取讀取</span>
+        <span style="--sw:#1E40AF">快取寫入</span>
+        <span style="--sw:#0F172A">輸出</span>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:0.5rem">不論換到哪個模型，快取讀取都佔成本的 52%～71%。降低長對話的重複上下文，效果比換模型更直接。</p>
+
+    <h3>各工具的席位與計費模式</h3>
+    <div class="table-shell">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">方案</th>
+              <th scope="col">席位／訂閱費</th>
+              <th scope="col">用量計費方式</th>
+              <th scope="col">同等級模型月費推估</th>
+              <th scope="col">說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-current"><th scope="row">GitHub Copilot（現況）</th><td>Pro $10／Pro+ $39；企業方案另議</td><td>2026-06-01 起改為依 token 牌價計費（AI Credits）；舊年約仍用 premium request</td><td class="num">$20,000（提供）</td><td class="note">牌價與供應商 API 相近；&gt;272K 級距加倍是主要風險</td></tr>
+            <tr class="row-best"><th scope="row">Claude Enterprise</th><td>$20／席位／月</td><td>用量依標準 API 牌價計費，管理者可設支出上限</td><td class="num">$4,572 ＋ 席位費</td><td class="note">全 Opus 5.5；無長上下文加價；含 Claude Code</td></tr>
+            <tr><th scope="row">Claude Team</th><td>Standard $25／Premium $125（年約 $20／$100）</td><td>包含固定用量（5 小時滾動視窗＋週上限），可加購 Extra usage</td><td class="num">視人數而定</td><td class="note">用量集中的重度使用者適合 Premium；超量部分依 API 牌價</td></tr>
+            <tr><th scope="row">Codex／ChatGPT Business</th><td>$20～25／席位／月</td><td>包含訊息額度（Astra 每 5 小時 5～45 則），超量以 credits 計：Astra 輸入 250／快取 25／輸出 1,250 credits 每百萬 token</td><td class="num">Astra $16,755；6.1 Sol $2,166</td><td class="note">credits 換算後與 API 牌價同級；保留 Astra 則不比 Copilot 便宜</td></tr>
+            <tr><th scope="row">OpenAI API 直連</th><td>無</td><td>標準牌價；區域端點加收 10%</td><td class="num">Astra $16,755；6.1 Sol $2,166</td><td class="note">需自備 agent 工具（Codex CLI 等）</td></tr>
+            <tr><th scope="row">Cursor Teams</th><td>$40／席位／月（Enterprise 另議）</td><td>方案內含固定用量，超量「on-demand」事後計費；是否有平台加價未公開</td><td class="num">約等於所選模型的 API 成本 ＋ 席位</td><td class="note">本質是編輯器，模型牌價仍由供應商決定；若沿用 Astra 不會比較便宜</td></tr>
+            <tr><th scope="row">Mac mini 地端</th><td>硬體一次性投入</td><td>每 token 近乎零；需人力維運</td><td class="num">約 $400～600／月（3 年攤提）</td><td class="note">模型品質明顯低於旗艦，詳見第三節</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:0.75rem">結論：Copilot、Cursor、Codex 三者都貼著供應商牌價收費，<strong>決定帳單的是「用哪個模型、送多少上下文」，不是選哪個工具</strong>。要把費用從 $20,000 降到 $5,000 以下，核心是離開 GPT-6 Astra 並改用快取讀取便宜的模型。</p>
+  </section>
+
+  <!-- ===================== 三、Mac mini 地端 ===================== -->
+  <section aria-labelledby="sec-local" style="margin-top:2.5rem">
+    <h2 id="sec-local">三、Mac mini 地端方案評估</h2>
+    <p class="subtitle">以九月的非快取輸入與輸出量估算地端算力需求；地端推論沒有「快取讀取」這項計費，但上下文仍要在本機重算（可用 KV cache 緩解）。</p>
+
+    <section class="cards" aria-label="地端需求數字" style="margin-top:1rem">
+      <article class="card">
+        <div class="card-label">每日需處理的 prefill token（輸入＋快取寫入）</div>
+        <div class="card-value">13.95M</div>
+        <div class="card-sub">418.6M ÷ 30 天；不含可由 KV cache 命中的部分</div>
+      </article>
+      <article class="card">
+        <div class="card-label">每日需生成的 token（輸出）</div>
+        <div class="card-value">0.48M</div>
+        <div class="card-sub">14.41M ÷ 30 天</div>
+      </article>
+      <article class="card">
+        <div class="card-label">單機每日滿載時數（推估）</div>
+        <div class="card-value">7～13 小時</div>
+        <div class="card-sub">假設 prefill 400～800 tok/s、decode 40～60 tok/s</div>
+      </article>
+    </section>
+
+    <div class="table-shell">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">項目</th>
+              <th scope="col">評估</th>
+              <th scope="col">說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">可用硬體上限</th><td>Mac mini M5 Pro，最高 64GB 統一記憶體、307GB/s 頻寬</td><td class="note">M6 版最高 32GB。64GB 可跑 30B～70B 級量化模型；無法載入旗艦級開源模型</td></tr>
+            <tr><th scope="row">模型品質</th><td>中階開源程式模型</td><td class="note">對「檔案查找、進度彙整、格式修改」可用；對跨模組根因分析、Figma／SA 規格衝突判斷、安全相關變更，品質明顯低於 Astra／Opus</td></tr>
+            <tr><th scope="row">所需台數</th><td>約 4～6 台</td><td class="note">多人、多代理並行時單機 7～13 小時滿載不可行；需分散負載並保留尖峰餘裕</td></tr>
+            <tr><th scope="row">一次性投入</th><td class="num">約 $10,000～15,000</td><td class="note">以每台約 $2,400（M5 Pro 64GB／1TB 推估，Apple 規格頁未顯示售價）× 4～6 台</td></tr>
+            <tr><th scope="row">每月攤提</th><td class="num">約 $400～600</td><td class="note">3 年攤提＋電費；不含維運人力、模型更新與故障備援</td></tr>
+            <tr class="qa-unknown"><th scope="row">同等工作改用雲端輕量模型</th><td class="num">Haiku 4.5 約 $320；GPT-6 Luna 約 $30</td><td class="note">地端最適合的「輕量工作」份額（18.4%）若直接用雲端輕量模型，月費低於地端攤提</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="footnotes" style="margin-top:1.25rem">
+      <article class="footnote">
+        <h3>結論：地端無法靠費用取勝</h3>
+        <p>地端能承接的只有輕量工作，而這類工作在雲端輕量模型上每月只要 $30～$320，低於地端的攤提與人力。<strong>選擇地端的正當理由是資料不出境、合規稽核（例如 ISO 27001 範圍內的原始碼不外送），而不是省錢。</strong>若有這類需求，建議以 1～2 台做「敏感資料／輕量工作」的小範圍試點，不要以取代全部用量為目標。</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== 四、模型分級下修 ===================== -->
+  <section aria-labelledby="sec-tier" style="margin-top:2.5rem">
+    <h2 id="sec-tier">四、模型分級下修情境</h2>
+    <p class="subtitle">依九月用途分組，把工作分為強／中／輕三級，各自指派不同模型；比例是依用途 token 佔比的假設，需以實測返工率校正。</p>
+
+    <div class="table-shell" style="margin-top:1rem">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">分級</th>
+              <th scope="col">對應用途（九月分組）</th>
+              <th scope="col">token 佔比</th>
+              <th scope="col">Claude 指派</th>
+              <th scope="col">OpenAI 指派</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">強</th><td>Figma／規格查驗（13.6%）＋ 混合／待確認的一半（12.0%）</td><td class="num">25.6%</td><td>Opus 5.5</td><td>GPT-6 Astra</td></tr>
+            <tr><th scope="row">中</th><td>開發實作（21.6%）＋ 測試／驗收（20.4%）＋ 混合／待確認的另一半（12.0%）＋ 未納入 TL（2.1%）</td><td class="num">56.0%</td><td>Sonnet 5.5</td><td>GPT-6.1 Sol</td></tr>
+            <tr><th scope="row">輕</th><td>進度與其他作業（17.5%）＋ API／共用工具支援（0.9%）</td><td class="num">18.4%</td><td>Haiku 4.5</td><td>GPT-6 Luna</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <section class="bar-chart" aria-labelledby="tier-chart-heading">
+      <h3 id="tier-chart-heading">各情境月費推估（US$）</h3>
+      <p class="chart-note">同一組 token 的不同指派方式，<strong>為推估而非承諾節省額</strong>。「減少 30% 快取讀取」對應第二節的上下文控管改善，假設其餘分量不變。</p>
+      <div class="bars">
+        <div class="bar-group-title">現況</div>
+        <div class="bar-row"><span class="bar-label">Copilot 現況</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:#94A3B8"></div></div><span class="bar-val">$20,000</span></div>
+        <div class="bar-group-title">留在 Copilot，只換模型</div>
+        <div class="bar-row"><span class="bar-label">Astra 全部換成 GPT-6.1 Sol</span><div class="bar-track"><div class="bar-fill range" style="width:61.8%;background:#64748B"></div><div class="bar-fill" style="width:30.9%;background:#64748B"></div></div><span class="bar-val">$6,183 ～ $12.4K</span></div>
+        <div class="bar-group-title">改用 OpenAI 牌價</div>
+        <div class="bar-row"><span class="bar-label">三級分派（Astra／6.1 Sol／Luna）</span><div class="bar-track"><div class="bar-fill" style="width:27.7%;background:#7C3AED"></div></div><span class="bar-val">$5,533</span></div>
+        <div class="bar-row"><span class="bar-label">三級分派＋快取讀取 −30%</span><div class="bar-track"><div class="bar-fill" style="width:22.1%;background:#7C3AED"></div></div><span class="bar-val">$4,418</span></div>
+        <div class="bar-row"><span class="bar-label">不用 Astra（6.1 Sol／Luna）</span><div class="bar-track"><div class="bar-fill" style="width:9.0%;background:#7C3AED"></div></div><span class="bar-val">$1,798</span></div>
+        <div class="bar-group-title">改用 Anthropic 牌價</div>
+        <div class="bar-row"><span class="bar-label">全部 Sonnet 5.5</span><div class="bar-track"><div class="bar-fill" style="width:17.4%;background:#059669"></div></div><span class="bar-val">$3,471</span></div>
+        <div class="bar-row"><span class="bar-label">三級分派（Opus／Sonnet／Haiku）</span><div class="bar-track"><div class="bar-fill" style="width:17.2%;background:#059669"></div></div><span class="bar-val">$3,433</span></div>
+        <div class="bar-row"><span class="bar-label">三級分派＋快取讀取 −30%</span><div class="bar-track"><div class="bar-fill" style="width:13.9%;background:#059669"></div></div><span class="bar-val">$2,788</span></div>
+      </div>
+    </section>
+
+    <div class="table-shell">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">情境</th>
+              <th scope="col">月費推估（US$）</th>
+              <th scope="col">相對現況</th>
+              <th scope="col">品質風險</th>
+              <th scope="col">說明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="row-current"><th scope="row">Copilot 現況</th><td class="num">$20,000</td><td class="num">100%</td><td>—</td><td class="note">基準</td></tr>
+            <tr><th scope="row">Copilot：Astra → GPT-6.1 Sol</th><td class="num">$6,183（≤272K）</td><td class="num">31%</td><td>中</td><td class="note">改動最小；若多為長上下文請求，約 $12.4K</td></tr>
+            <tr><th scope="row">OpenAI 三級分派</th><td class="num">$5,533</td><td class="num">28%</td><td>低</td><td class="note">強級仍用 Astra，其 25.6% 份額就佔 $4,289</td></tr>
+            <tr><th scope="row">OpenAI 不用 Astra</th><td class="num">$1,798</td><td class="num">9%</td><td>高</td><td class="note">規格衝突判斷、根因分析交給中階模型，返工率需驗證</td></tr>
+            <tr><th scope="row">Claude 全部 Sonnet 5.5</th><td class="num">$3,471</td><td class="num">17%</td><td>中</td><td class="note">單一模型最簡單；Opus 與 Sonnet 快取讀取同價，差在輸入／輸出</td></tr>
+            <tr class="row-best"><th scope="row">Claude 三級分派</th><td class="num">$3,433</td><td class="num">17%</td><td>低</td><td class="note">強級保留 Opus 5.5，與全 Sonnet 幾乎同價卻保留旗艦品質</td></tr>
+            <tr class="row-best"><th scope="row">Claude 三級分派＋快取讀取 −30%</th><td class="num">$2,788</td><td class="num">14%</td><td>低</td><td class="note">需同步落實上下文控管</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="subtitle" style="margin-top:0.75rem">在 Claude 牌價下，「三級分派」與「全部 Sonnet」只差 $38——因為 Opus 5.5 與 Sonnet 5.5 的快取讀取同為 $0.20，而快取讀取佔了多數成本。<strong>這表示在 Claude 上保留旗艦模型做高風險工作幾乎不需多付錢</strong>，分級的重點反而是把輕量工作下放到 Haiku。</p>
+  </section>
+
+  <!-- ===================== 五、結論與建議 ===================== -->
+  <section aria-labelledby="sec-conclusion" style="margin-top:2.5rem">
+    <h2 id="sec-conclusion">五、結論與建議</h2>
+
+    <div class="good">
+      <strong>以同等級模型、相同用量換算，Claude 方案月費約 $3,400～4,600，為現況的 17%～23%；若同時落實上下文控管，可到 $2,800 左右。</strong>
+      <p style="margin:0.5rem 0 0">Codex／Cursor 若沿用 GPT-6 Astra 不會比 Copilot 便宜；Mac mini 地端只在合規需求下有意義。</p>
+    </div>
+
+    <div class="footnotes">
+      <article class="footnote">
+        <h3>1. 先對帳，再決定換不換</h3>
+        <p>向 GitHub 調出九月依模型、依級距（≤272K／&gt;272K）的實際 token 計費明細。若證實多數費用來自 &gt;272K 級距，則改用無長上下文加價的 Claude 效益最大；若 $20,000 含其他成員用量，本報告各方案金額需等比放大。</p>
+        <p><strong>驗證方式：</strong>GitHub 帳單明細與第一節表格的重算金額對得起來。</p>
+      </article>
+      <article class="footnote">
+        <h3>2. 最大單一節省來源：離開 GPT-6 Astra</h3>
+        <p>Astra 快取讀取每百萬 $1.00，Opus 5.5／Sonnet 5.5 為 $0.20，GPT-6.1 Sol 為 $0.10。本期 26.8% 的 token 用在 Astra，卻佔 45.5% 的成本。即使不換工具，先把 Astra 限制在規格衝突判斷、跨模組根因分析與高風險變更審查，其餘改中階模型，就能壓到 $6,200 左右（≤272K 口徑）。</p>
+      </article>
+      <article class="footnote">
+        <h3>3. 快取讀取占成本 52%～71%，上下文控管比換模型更根本</h3>
+        <p>延續原報告「減少長對話反覆讀取上下文」的方向：不同 Issue 分開處理、以短交接摘要傳遞決策、大量 log 留在檔案只讀必要範圍。快取讀取每減少 10%，在 Claude 三級分派下約省 $215／月，在保留 Astra 的 OpenAI 分派下約省 $370／月。</p>
+        <p><strong>驗證方式：</strong>比較同類任務每個完成項目的 token 數與成本，而非單次請求費用。</p>
+      </article>
+      <article class="footnote">
+        <h3>4. 建議的導入順序</h3>
+        <ul>
+          <li><strong>第一步（不換工具）：</strong>Copilot 內把 Astra 限縮至高風險工作，低風險工作改 GPT-6.1 Sol 或 Claude Sonnet 5.5，觀察一個月的返工率。</li>
+          <li><strong>第二步（小範圍試點）：</strong>一個小組改用 Claude Enterprise 或 Team Premium，以三級分派跑同類任務，記錄每完成項目的成本、正確率與返工率，與 Copilot 組對照。</li>
+          <li><strong>第三步（依數據擴大）：</strong>試點若證實品質相當、成本落在 $3,000～5,000 區間，再評估全面轉移；席位制（Team）與用量制（Enterprise）的取捨依實際人數與用量集中度決定。</li>
+          <li><strong>地端：</strong>僅在 ISO 27001 等合規需求下，以 1～2 台 Mac mini 承接敏感原始碼的輕量工作，不以取代雲端為目標。</li>
+        </ul>
+      </article>
+      <article class="footnote">
+        <h3>5. 本報告尚未涵蓋</h3>
+        <ul>
+          <li>企業折扣、年約價、區域處理加價（OpenAI 公告 10%）。</li>
+          <li>模型更換後的品質差異與返工成本——本報告沒有同類任務的模型對照實驗。</li>
+          <li>Cursor on-demand 計費是否含平台加價（官方未公開）。</li>
+          <li>Copilot 2026-06-01 新計費（AI Credits）各方案內含額度。</li>
+          <li>工具轉換的學習成本、既有 workflow／MCP／代理設定的搬遷工時。</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="footnotes" style="margin-top:2.5rem">
+    <article class="footnote">
+      <h2>計算口徑</h2>
+      <p>各方案月費 ＝ 輸入 token × 輸入價 ＋ 快取讀取 token × 快取讀取價 ＋ 快取寫入 token × 快取寫入價 ＋ 輸出 token × 輸出價，token 分量取自九月 token 分析報告合計列（單位：百萬）。Copilot 現況各模型的 token 份額，由報告中各模型成本份額除以該模型牌價單位成本反推，假設各模型的四項分量比例相同。三級分派比例依用途 token 佔比假設（混合／待確認對半分配至強、中兩級）。地端算力以 prefill 400～800 tok/s、decode 40～60 tok/s 推估，未計 KV cache 命中。</p>
+    </article>
+    <article class="footnote">
+      <h2>牌價來源（2026-10-01 查詢）</h2>
+      <ul>
+        <li>Anthropic：<a href="https://platform.claude.com/docs/en/about-claude/pricing">Claude API 牌價</a>、<a href="https://claude.com/pricing">Claude 方案</a></li>
+        <li>GitHub：<a href="https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing">Copilot 模型與 token 牌價</a>、<a href="https://docs.github.com/en/copilot/concepts/billing/copilot-requests">Copilot premium request（舊制）</a></li>
+        <li>OpenAI：<a href="https://developers.openai.com/api/docs/pricing">API 牌價</a>、<a href="https://learn.chatgpt.com/docs/pricing">ChatGPT／Codex 方案與 credits</a></li>
+        <li>Cursor：<a href="https://cursor.com/pricing">方案頁</a></li>
+        <li>Apple：<a href="https://www.apple.com/mac-mini/specs/">Mac mini 技術規格</a></li>
+      </ul>
+    </article>
+  </section>
+
+  <p class="footer-note">本頁為離線 artifacts，非 App UI／Figma 設計稿。與九月費用分攤摘要、token 分析報告為同一組用量的不同視角，金額不可相加。</p>
+</div>
+<script>
+(function () {
+  var printBtn = document.getElementById('print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', function () { window.print(); });
+  }
+})();
+</script>
+</body>
+</html>
