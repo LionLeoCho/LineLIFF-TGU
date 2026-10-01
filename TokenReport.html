@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 年 9 月 Copilot 費用分攤摘要</title>
+<style>
+:root {
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --text: #1a2332;
+  --muted: #5c6773;
+  --border: #d8dee6;
+  --accent: #2563eb;
+  --warn-bg: #fff4e5;
+  --warn-border: #e6a23c;
+  --warn-text: #7a4b00;
+  --amber-bg: #fff8e6;
+  --amber-border: #f0b429;
+  --amber-text: #8a5a00;
+  --emphasis-bg: #eef2ff;
+  --shadow: 0 1px 3px rgba(26, 35, 50, 0.08);
+  --radius: 10px;
+  --space: 1.25rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.55;
+  font-size: 16px;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: calc(var(--space) * 2) var(--space) calc(var(--space) * 3);
+}
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space);
+  margin-bottom: calc(var(--space) * 1.5);
+}
+h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.65rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+button.print-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+button.print-btn:hover { border-color: var(--accent); color: var(--accent); }
+.warning {
+  background: var(--warn-bg);
+  border: 2px solid var(--warn-border);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 0.85) var(--space);
+  margin-bottom: calc(var(--space) * 1.5);
+  color: var(--warn-text);
+}
+.warning strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 0.35rem;
+  color: #5c3a00;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space);
+  margin-bottom: calc(var(--space) * 1.75);
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 1.1);
+  box-shadow: var(--shadow);
+}
+.card-label {
+  font-size: 0.82rem;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.card-sub {
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+.table-shell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 880px;
+}
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #eef1f6;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0.85rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.note {
+  min-width: 220px;
+  max-width: 420px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.row-emphasis td {
+  font-weight: 650;
+  background: var(--emphasis-bg);
+}
+.row-excluded td { background: #fafbfc; }
+.row-meta td {
+  background: #f8f9fb;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.qa-detail td { background: #fbfcfe; }
+.other-detail td { background: #f6f9fd; }
+.qa-unknown td {
+  background: var(--amber-bg) !important;
+  color: var(--amber-text);
+  border-top: 1px solid var(--amber-border);
+  border-bottom: 1px solid var(--amber-border);
+}
+.qa-unknown .note { color: #6b4e1a; }
+.qa-toggle {
+  display: inline-block;
+  margin-right: 0.5rem;
+  margin-bottom: 0.25rem;
+  padding: 0.25rem 0.55rem;
+  font: inherit;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  color: var(--accent);
+}
+.qa-toggle:hover { border-color: var(--accent); }
+.subtotal-label { font-weight: 650; }
+.qa-prefix {
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+.qa-indent { padding-left: 1.25rem; }
+tr.qa-detail.is-collapsed, tr.other-detail.is-collapsed { display: none; }
+.footnotes {
+  margin-top: calc(var(--space) * 1.5);
+  display: grid;
+  gap: var(--space);
+}
+.footnote {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space);
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+.footnote h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.footer-note {
+  margin-top: calc(var(--space) * 2);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+@media print {
+  body { background: #fff; }
+  .wrap { max-width: none; padding: 0.5in; }
+  .toolbar, .qa-toggle { display: none !important; }
+  tr.qa-detail, tr.other-detail { display: table-row !important; }
+  .table-shell, .card, .warning, .footnote {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  thead th { position: static; }
+}
+</style>
+<style>
+.copilot-pie-chart {
+  font-family: system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  color: #0f172a;
+  margin: 1.5rem 0;
+}
+.copilot-pie-chart h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+.copilot-pie-chart .chart-note,
+.copilot-pie-chart .chart-desc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+  max-width: 42rem;
+}
+.copilot-pie-chart .chart-note {
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+.copilot-pie-chart .chart-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+.copilot-pie-chart .pie-svg {
+  width: min(100%, 240px);
+  height: auto;
+  flex: 0 0 auto;
+}
+.copilot-pie-chart .pie-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 16rem;
+  min-width: 14rem;
+}
+.copilot-pie-chart .pie-legend-item {
+  display: grid;
+  grid-template-columns: 1rem 1fr auto auto;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+  font-size: 0.875rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.copilot-pie-chart .pie-swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+  display: inline-block;
+}
+.copilot-pie-chart .pie-legend-label { font-weight: 500; }
+.copilot-pie-chart .pie-legend-usd { font-variant-numeric: tabular-nums; }
+.copilot-pie-chart .pie-legend-pct { color: #64748b; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>2026 年 9 月 Copilot 費用分攤摘要</h1>
+      <p class="subtitle">管理用推估分攤表（來源：<code>report.md</code>）；不含 session 原始紀錄。</p>
+    </div>
+    <div class="toolbar">
+      <button type="button" class="print-btn" id="print-btn">列印／另存 PDF</button>
+    </div>
+  </header>
+
+  <div class="warning" role="alert">
+    <strong>注意：以下為條件式推估分攤，並非已核實的 GitHub Copilot 帳單金額</strong>
+    <p style="margin:0.5rem 0 0">總額與各項百分比皆以使用者提供之 US$20,000 為分母，依 Pi 成本權重分攤；假設本機紀錄代表完整帳單。若實際帳單含團隊或其他工具用量，需重新計算。測試小計包含八項可辨識的相關作業；TL 其他作業也列出用途明細。<strong>所有明細均已包含在各小計，請勿重複加總</strong>；進度管理重歸因及待確認費用仍獨立列示。</p>
+  </div>
+
+  <section class="cards" aria-label="總額如何分攤">
+    <article class="card">
+      <div class="card-label">提供的九月總費用</div>
+      <div class="card-value">$20,000.00</div>
+      <div class="card-sub">使用者提供的金額，作為分攤基準</div>
+    </article>
+    <article class="card">
+      <div class="card-label">TL 與相關支援（估算）</div>
+      <div class="card-value">$19,715.44</div>
+      <div class="card-sub">分攤比例：98.58%；包含共用工具投入</div>
+    </article>
+    <article class="card">
+      <div class="card-label">未納入 TL 範圍（估算）</div>
+      <div class="card-value">$284.56</div>
+      <div class="card-sub">分攤比例：1.42%；其他用途或關聯未確認</div>
+    </article>
+  </section>
+  <p class="subtitle"><strong>提供的總額 = TL 與相關支援的估算份額 + 未納入 TL 的估算份額。</strong>
+  測試／驗收只是 TL 作業中的一部分，請看下方用途表，不與這三張卡並列比較。</p>
+
+  <nav class="toolbar" aria-label="報告章節" style="margin-top:1.5rem">
+    <a href="#purpose-section-heading">依照用途分組</a>
+    <a href="#model-section-heading">依照模型分組</a>
+    <a href="#improvement-section-heading">改善方向</a>
+  </nav>
+
+  <section aria-labelledby="purpose-section-heading" style="margin-top:2rem">
+    <h2 id="purpose-section-heading">一、依照用途分組</h2>
+    <p class="subtitle">同一筆總費用按工作用途拆分；圓餅圖看大類，表格可展開細項。</p>
+    <section class="copilot-pie-chart" aria-labelledby="copilot-purpose-heading"><h3 id="copilot-purpose-heading">用途分組圓餅圖</h3><p class="chart-note">本圖依 Pi 記錄的成本比例分攤 US$20,000，屬於<strong>推估，不是核實帳單</strong>。零成本紀錄也不代表已確認免費；用途圖與模型圖是同一筆費用的兩個視角，不可相加。</p><p class="chart-desc">第一張表依大類彙整。PR／代理／Git 等作業合併為「進度與其他作業」；API 與共用工具支援合併一類。所有混合與待確認費用（包含其他作業明細中的待確認項）合併為琥珀色區塊。小計與子項目不重複加總。</p><div class="chart-layout"><svg id="copilot-purpose-pie" class="pie-svg" viewBox="0 0 240 240" role="img" aria-labelledby="copilot-purpose-pie-title copilot-purpose-pie-desc"><title id="copilot-purpose-pie-title">2026 年 9 月 Copilot 用途分組（USD 帳單比例）</title><desc id="copilot-purpose-pie-desc">七個互斥用途分組，加總 $20,000.00。QA 細項與轉出列已併入對應用途，不重複計入原始 testing 小計。</desc><path d="M 120.00,120.00 L 120.00,20.00 A 100.00,100.00 0 0,1 182.35,41.82 Z" fill="#6366F1" stroke="#ffffff" stroke-width="1"><title>Figma／規格：$2,142.80（10.7%）</title></path><path d="M 120.00,120.00 L 182.35,41.82 A 100.00,100.00 0 0,1 209.09,165.41 Z" fill="#0EA5E9" stroke="#ffffff" stroke-width="1"><title>開發實作：$4,357.70（21.8%）</title></path><path d="M 120.00,120.00 L 209.09,165.41 A 100.00,100.00 0 0,1 104.22,218.75 Z" fill="#10B981" stroke="#ffffff" stroke-width="1"><title>可辨識的測試／驗收相關作業：$4,003.92（20.0%）</title></path><path d="M 120.00,120.00 L 104.22,218.75 A 100.00,100.00 0 0,1 20.53,130.31 Z" fill="#8B5CF6" stroke="#ffffff" stroke-width="1"><title>進度與其他作業：$4,166.72（20.8%）</title></path><path d="M 120.00,120.00 L 20.53,130.31 A 100.00,100.00 0 0,1 20.17,125.90 Z" fill="#14B8A6" stroke="#ffffff" stroke-width="1"><title>API／共用工具／workspace 支援：$140.81（0.7%）</title></path><path d="M 120.00,120.00 L 20.17,125.90 A 100.00,100.00 0 0,1 111.07,20.40 Z" fill="#F59E0B" stroke="#ffffff" stroke-width="1"><title>混合／用途待確認：$4,903.48（24.5%）</title></path><path d="M 120.00,120.00 L 111.07,20.40 A 100.00,100.00 0 0,1 120.00,20.00 Z" fill="#94A3B8" stroke="#ffffff" stroke-width="1"><title>未納入 TL 範圍：$284.56（1.4%）</title></path></svg><ul class="pie-legend"><li class="pie-legend-item"><span class="pie-swatch" style="background:#6366F1"></span><span class="pie-legend-label">Figma／規格</span><span class="pie-legend-usd">$2,142.80</span><span class="pie-legend-pct">10.7%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#0EA5E9"></span><span class="pie-legend-label">開發實作</span><span class="pie-legend-usd">$4,357.70</span><span class="pie-legend-pct">21.8%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#10B981"></span><span class="pie-legend-label">可辨識的測試／驗收相關作業</span><span class="pie-legend-usd">$4,003.92</span><span class="pie-legend-pct">20.0%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#8B5CF6"></span><span class="pie-legend-label">進度與其他作業</span><span class="pie-legend-usd">$4,166.72</span><span class="pie-legend-pct">20.8%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#14B8A6"></span><span class="pie-legend-label">API／共用工具／workspace 支援</span><span class="pie-legend-usd">$140.81</span><span class="pie-legend-pct">0.7%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#F59E0B"></span><span class="pie-legend-label">混合／用途待確認</span><span class="pie-legend-usd">$4,903.48</span><span class="pie-legend-pct">24.5%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#94A3B8"></span><span class="pie-legend-label">未納入 TL 範圍</span><span class="pie-legend-usd">$284.56</span><span class="pie-legend-pct">1.4%</span></li></ul></div></section>
+
+  <section class="table-shell" aria-label="分攤明細表">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">大類</th>
+            <th scope="col">細項</th>
+            <th scope="col">2026 年 9 月推估分攤（USD）</th>
+            <th scope="col">佔 US$20,000 總帳單</th>
+            <th scope="col">說明</th>
+          </tr>
+        </thead>
+        <tbody>
+<tr>
+  <td>直接交付</td>
+  <td class="item-cell">Figma／規格查驗與整理</td>
+  <td class="num">$2,142.80</td>
+  <td class="num">10.71%</td>
+  <td class="note">含本次從原 QA 費用中重歸因的規格查驗</td>
+</tr>
+<tr>
+  <td>直接交付</td>
+  <td class="item-cell">開發／程式碼調查</td>
+  <td class="num">$4,357.70</td>
+  <td class="num">21.79%</td>
+  <td class="note">含本次查出的原始碼、架構或 API 實作調查</td>
+</tr>
+<tr class="row-emphasis" data-qa-subtotal="1">
+  <td>測試相關作業</td>
+  <td class="item-cell">
+    <button type="button" class="qa-toggle" id="qa-toggle" aria-expanded="false"
+      data-label-collapse="收合測試相關明細（八項）"
+      data-label-expand="展開測試相關明細（八項）">展開測試相關明細（八項）</button>
+    <span class="subtotal-label">可辨識的測試／驗收相關作業小計</span>
+  </td>
+  <td class="num">$4,003.92</td>
+  <td class="num">20.02%</td>
+  <td class="note">以下八項為小計明細；進度管理、混合作業及尚未釐清費用另列</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 測試碼／測試流程編寫與修正</td>
+  <td class="num">$397.15</td>
+  <td class="num">1.99%</td>
+  <td class="note">test／integration_test／Maestro／Widgetbook 寫入或編修</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 自動測試／靜態分析／驗收</td>
+  <td class="num">$560.91</td>
+  <td class="num">2.80%</td>
+  <td class="note">可辨識的 test／analyze／acceptance／check_all 執行</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 實機／模擬器／視覺 QA</td>
+  <td class="num">$284.59</td>
+  <td class="num">1.42%</td>
+  <td class="note">ADB／simctl 截圖或 UI 操作、Maestro 執行</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 程式碼審查</td>
+  <td class="num">$159.36</td>
+  <td class="num">0.80%</td>
+  <td class="note">review 工具或明確 review 委派；不等於 GitHub 實收 review 費</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 代理派工與結果整理</td>
+  <td class="num">$1,089.00</td>
+  <td class="num">5.44%</td>
+  <td class="note">父代理協作成本；不由子代理回傳內容補造費用</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 查閱測試程式及驗收文件</td>
+  <td class="num">$667.26</td>
+  <td class="num">3.34%</td>
+  <td class="note">讀取測試碼、QA 文件、manifest；不等於執行測試</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 測試環境準備與故障排查</td>
+  <td class="num">$229.99</td>
+  <td class="num">1.15%</td>
+  <td class="note">模擬器、裝置、Mockoon、Maestro／WDA 程序與連線檢查</td>
+</tr>
+<tr class="qa-detail is-collapsed" data-qa-detail="1">
+  <td>QA 明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 測試計畫、流程文件及結果整理</td>
+  <td class="num">$615.66</td>
+  <td class="num">3.08%</td>
+  <td class="note">編修驗收計畫／manifest、整理結果；不是測試執行時間</td>
+</tr>
+<tr>
+  <td>進度與交付管理</td>
+  <td class="item-cell">PR／Issue 進度、workspace 狀態與交付整理（本次查出）</td>
+  <td class="num">$972.32</td>
+  <td class="num">4.86%</td>
+  <td class="note">查 PR／issue、Git／jj 狀態、交付 checkpoint；不再列入測試小計</td>
+</tr>
+<tr>
+  <td>同輪多項工作</td>
+  <td class="item-cell">同一輪同時處理不同工作，費用無法分拆</td>
+  <td class="num">$165.91</td>
+  <td class="num">0.83%</td>
+  <td class="note">已辨識工作種類，但單輪模型費用無法分別歸給測試／開發／管理等操作</td>
+</tr>
+<tr class="qa-unknown">
+  <td>尚未分類</td>
+  <td class="item-cell">仍缺足夠證據判斷工作用途</td>
+  <td class="num">$1,420.93</td>
+  <td class="num">7.10%</td>
+  <td class="note">已讀完整操作與上下文作規則查驗及抽查；動態腳本或混合描述仍不足以可靠歸因</td>
+</tr>
+<tr class="row-emphasis" data-other-subtotal="1">
+  <td>其他作業</td>
+  <td class="item-cell">
+    <button type="button" class="qa-toggle" id="other-toggle" aria-expanded="false"
+      data-label-collapse="收合其他作業明細"
+      data-label-expand="展開其他作業明細">展開其他作業明細</button>
+    <span class="subtotal-label">TL 其他作業小計</span>
+  </td>
+  <td class="num">$4,883.21</td>
+  <td class="num">24.42%</td>
+  <td class="note">以下明細只拆分原其他作業，不包含上方由 QA 重歸因的進度管理費用</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> PR／Issue／Jira 進度與審查管理</td>
+  <td class="num">$1,678.02</td>
+  <td class="num">8.39%</td>
+  <td class="note">查詢與更新工作項目、PR／CI 狀態、review 回覆及交付摘要</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 代理派工、工作流程與工具管理</td>
+  <td class="num">$1,092.97</td>
+  <td class="num">5.46%</td>
+  <td class="note">Herdr／子代理派工、讀取結果、pane 管理、工具維護；非共用效率投資追加列</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> Git／jj／workspace 管理</td>
+  <td class="num">$280.71</td>
+  <td class="num">1.40%</td>
+  <td class="note">查工作目錄與提交紀錄、建立／整理 workspace、rebase／push 等版本控制作業</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 發版與測試版本交付相關作業</td>
+  <td class="num">$27.76</td>
+  <td class="num">0.14%</td>
+  <td class="note">發版準備、版本說明與交付相關操作；不代表每筆都已實際發布</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> API／契約查詢</td>
+  <td class="num">$10.10</td>
+  <td class="num">0.05%</td>
+  <td class="note">原 TL 其他作業內的 API／Swagger／Bruno 查詢；不包含另列的外部 API 支援</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 程式碼調查與實作支援</td>
+  <td class="num">$16.28</td>
+  <td class="num">0.08%</td>
+  <td class="note">在原其他作業範圍中辨識出的程式碼讀寫／調查；未重複加入上方開發列</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 規格與 Figma 查驗支援</td>
+  <td class="num">$1.31</td>
+  <td class="num">0.01%</td>
+  <td class="note">在原其他作業範圍中辨識出的規格工作；未重複加入上方規格列</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 測試及測試環境支援</td>
+  <td class="num">$87.26</td>
+  <td class="num">0.44%</td>
+  <td class="note">在原其他作業範圍中辨識出的測試／文件／環境操作；未重複加入測試小計</td>
+</tr>
+<tr class="other-detail is-collapsed" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 同一輪多項工作，費用無法分拆</td>
+  <td class="num">$568.99</td>
+  <td class="num">2.84%</td>
+  <td class="note">已辨識多種用途，保留單輪費用，不按任意比例拆到其他明細</td>
+</tr>
+<tr class="other-detail is-collapsed qa-unknown" data-other-detail="1">
+  <td>其他作業明細</td>
+  <td class="item-cell qa-indent"><span class="qa-prefix" aria-hidden="true">↳</span> 其他作業：工作用途仍待確認</td>
+  <td class="num">$1,119.82</td>
+  <td class="num">5.60%</td>
+  <td class="note">無明確工具目的或回覆用途；不單憑原其他作業標籤推論細項</td>
+</tr>
+<tr>
+  <td>直接交付／待確認</td>
+  <td class="item-cell">TL 混合任務（原分類）</td>
+  <td class="num">$1,528.74</td>
+  <td class="num">7.64%</td>
+  <td class="note"></td>
+</tr>
+<tr>
+  <td>直接交付／待確認</td>
+  <td class="item-cell">TL 無法歸類（原分類）</td>
+  <td class="num">$99.08</td>
+  <td class="num">0.50%</td>
+  <td class="note"></td>
+</tr>
+<tr>
+  <td>相關支援</td>
+  <td class="item-cell">API log／API 文件支援</td>
+  <td class="num">$18.38</td>
+  <td class="num">0.09%</td>
+  <td class="note">相關 API 查驗與工具工作</td>
+</tr>
+<tr>
+  <td>相關支援</td>
+  <td class="item-cell">共用 Agent 效率工具投資</td>
+  <td class="num">$119.75</td>
+  <td class="num">0.60%</td>
+  <td class="note">含改善目的／維護／研究，未量測 ROI，也非 TL 專用</td>
+</tr>
+<tr>
+  <td>相關支援</td>
+  <td class="item-cell">TL workspace 維護</td>
+  <td class="num">$2.68</td>
+  <td class="num">0.01%</td>
+  <td class="note">語意查驗後由上層目錄改歸 TL</td>
+</tr>
+<tr class="row-emphasis">
+  <td>**納入合計**</td>
+  <td class="item-cell">TL 交付＋相關支援／共用工具</td>
+  <td class="num">$19,715.44</td>
+  <td class="num">98.58%</td>
+  <td class="note">各明細皆已包含在各小計，不重複加總；保留重歸因與待確認費用</td>
+</tr>
+<tr class="row-excluded">
+  <td>未納入</td>
+  <td class="item-cell">其他產品／個人用途及關聯待確認</td>
+  <td class="num">$284.56</td>
+  <td class="num">1.42%</td>
+  <td class="note"></td>
+</tr>
+<tr class="row-emphasis">
+  <td>**全部**</td>
+  <td class="item-cell">總帳單推估分攤</td>
+  <td class="num">$20,000.00</td>
+  <td class="num">100.00%</td>
+  <td class="note">分項顯示值可能有四捨五入尾差</td>
+</tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  </section>
+
+  <section aria-labelledby="model-section-heading" style="margin-top:2.5rem">
+    <h2 id="model-section-heading">二、依照模型分組</h2>
+    <p class="subtitle">同一筆總費用按 AI 模型拆分；這不是額外費用，不與第一章相加。</p>
+    <section class="copilot-pie-chart" aria-labelledby="copilot-model-heading"><h3 id="copilot-model-heading">模型分攤圓餅圖</h3><p class="chart-note">本圖依 Pi 記錄的成本比例分攤 US$20,000，屬於<strong>推估，不是核實帳單</strong>。零成本紀錄也不代表已確認免費；用途圖與模型圖是同一筆費用的兩個視角，不可相加。</p><p class="chart-desc">各模型的推估分攤合計 $20,000.00，與第二張表相同。Opus 4.7 拼字別名已合併；小額模型保留真實比例，細小區塊請參考圖例數值。</p><div class="chart-layout"><svg id="copilot-model-pie" class="pie-svg" viewBox="0 0 240 240" role="img" aria-labelledby="copilot-model-pie-title copilot-model-pie-desc"><title id="copilot-model-pie-title">2026 年 9 月 Copilot 模型費用分攤（USD）</title><desc id="copilot-model-pie-desc">七個模型的 allocated_usd 份額，加總 $20,000.00；比例依 recorded cost 權重。極小扇區維持真實比例，不做視覺放大。</desc><path d="M 120.00,120.00 L 120.00,20.00 A 100.00,100.00 0 0,1 147.69,216.09 Z" fill="#2563EB" stroke="#ffffff" stroke-width="1"><title>gpt-6-astra：$9,106.97（45.5%）</title></path><path d="M 120.00,120.00 L 147.69,216.09 A 100.00,100.00 0 0,1 37.40,63.63 Z" fill="#7C3AED" stroke="#ffffff" stroke-width="1"><title>gpt-5.5：$7,799.22（39.0%）</title></path><path d="M 120.00,120.00 L 37.40,63.63 A 100.00,100.00 0 0,1 67.69,34.77 Z" fill="#DB2777" stroke="#ffffff" stroke-width="1"><title>claude-opus-4-7：$1,341.62（6.7%）</title></path><path d="M 120.00,120.00 L 67.69,34.77 A 100.00,100.00 0 0,1 92.95,23.73 Z" fill="#059669" stroke="#ffffff" stroke-width="1"><title>claude-opus-5：$880.27（4.4%）</title></path><path d="M 120.00,120.00 L 92.95,23.73 A 100.00,100.00 0 0,1 119.93,20.00 Z" fill="#EA580C" stroke="#ffffff" stroke-width="1"><title>gpt-6-sol：$869.76（4.3%）</title></path><path d="M 120.00,120.00 L 119.93,20.00 A 100.00,100.00 0 0,1 119.98,20.00 Z" fill="#0891B2" stroke="#ffffff" stroke-width="1"><title>gemini-3.8-flash：$1.38（0.0%）</title></path><path d="M 120.00,120.00 L 119.98,20.00 A 100.00,100.00 0 0,1 120.00,20.00 Z" fill="#F59E0B" stroke="#ffffff" stroke-width="1"><title>claude-opus-4-6：$0.77（0.0%）</title></path></svg><ul class="pie-legend"><li class="pie-legend-item"><span class="pie-swatch" style="background:#2563EB"></span><span class="pie-legend-label">gpt-6-astra</span><span class="pie-legend-usd">$9,106.97</span><span class="pie-legend-pct">45.5%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#7C3AED"></span><span class="pie-legend-label">gpt-5.5</span><span class="pie-legend-usd">$7,799.22</span><span class="pie-legend-pct">39.0%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#DB2777"></span><span class="pie-legend-label">claude-opus-4-7</span><span class="pie-legend-usd">$1,341.62</span><span class="pie-legend-pct">6.7%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#059669"></span><span class="pie-legend-label">claude-opus-5</span><span class="pie-legend-usd">$880.27</span><span class="pie-legend-pct">4.4%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#EA580C"></span><span class="pie-legend-label">gpt-6-sol</span><span class="pie-legend-usd">$869.76</span><span class="pie-legend-pct">4.3%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#0891B2"></span><span class="pie-legend-label">gemini-3.8-flash</span><span class="pie-legend-usd">$1.38</span><span class="pie-legend-pct">0.0%</span></li><li class="pie-legend-item"><span class="pie-swatch" style="background:#F59E0B"></span><span class="pie-legend-label">claude-opus-4-6</span><span class="pie-legend-usd">$0.77</span><span class="pie-legend-pct">0.0%</span></li></ul></div></section>
+
+    <section aria-labelledby='model-heading' style='margin-top:2rem'>
+<h3 id='model-heading'>各 AI 模型佔 US$20,000 的比例</h3>
+<p>範圍：全部 Pi Copilot 紀錄，包含 TL 與其他用途。按各模型的 Pi 成本估值分攤，不是 GitHub 已核實的模型帳單。</p>
+<div class='table-shell'><div class='table-scroll'><table>
+<thead><tr><th scope='col'>AI 模型（session 記錄名稱）</th><th scope='col'>US$20,000 推估分攤（USD）</th><th scope='col'>佔總帳單</th><th scope='col'>Assistant 紀錄數</th></tr></thead>
+<tbody><tr><th scope='row'>gpt-6-astra</th><td class='num'>$9,106.97</td><td class='num'>45.5349%</td><td class='num'>8,519</td></tr>
+<tr><th scope='row'>gpt-5.5</th><td class='num'>$7,799.22</td><td class='num'>38.9961%</td><td class='num'>18,485</td></tr>
+<tr><th scope='row'>claude-opus-4-7</th><td class='num'>$1,341.62</td><td class='num'>6.7081%</td><td class='num'>2,765</td></tr>
+<tr><th scope='row'>claude-opus-5</th><td class='num'>$880.27</td><td class='num'>4.4014%</td><td class='num'>2,151</td></tr>
+<tr><th scope='row'>gpt-6-sol</th><td class='num'>$869.76</td><td class='num'>4.3488%</td><td class='num'>3,350</td></tr>
+<tr><th scope='row'>gemini-3.8-flash</th><td class='num'>$1.38</td><td class='num'>0.0069%</td><td class='num'>80</td></tr>
+<tr><th scope='row'>claude-opus-4-6</th><td class='num'>$0.77</td><td class='num'>0.0039%</td><td class='num'>8</td></tr>
+<tr class='row-emphasis'><th scope='row'>全部模型合計</th><td class='num'>$20,000.00</td><td class='num'>100.0000%</td><td class='num'>35,358</td></tr></tbody></table></div></div>
+<p class='note' style='max-width:none'>同一模型的 Opus 4.7 拼字別名已合併；其中有 16 筆別名紀錄的成本為零，不代表已證明免費。百分比保留四位小數，避免小額模型顯示為 0%；顯示值相加可能有四捨五入尾差。</p>
+</section>
+  </section>
+
+  <section aria-labelledby="improvement-section-heading" style="margin-top:2.5rem">
+    <h2 id="improvement-section-heading">三、改善方向</h2>
+    <p class="subtitle">先讓費用可對帳、工作用途可追溯，再降低重複操作與上下文成本。以下是改善建議，不是已證明的浪費或節省成果。</p>
+    <div class="footnotes">
+      <article class="footnote">
+        <h3>1. 任務開始就標記工作用途</h3>
+        <p>每個任務記錄專案、Issue／PR、工作類型與階段切換；分清實作、測試執行、文件整理、派工和交付管理。共用工具投入單列，不直接宣稱全屬 TL。</p>
+        <p><strong>驗證方式：</strong>「工作用途待確認」與「同輪多項工作」的成本占比逐月下降，且有原始證據可回查。</p>
+      </article>
+      <article class="footnote">
+        <h3>2. 減少長對話反覆讀取上下文</h3>
+        <p>不同 Issue／工作階段分開處理，以短交接摘要傳遞決策與證據；大量原始 log 留在檔案，只讀取必要範圍。不把整份規格或完整輸出反覆貼進每輪對話。</p>
+        <p><strong>驗證方式：</strong>在品質相當的任務中比較每個完成項目的 token 與成本，而非只看單次請求費用。</p>
+      </article>
+      <article class="footnote">
+        <h3>3. 重用規格與驗證證據</h3>
+        <p>Figma／API／規格查驗保留來源、版本及時間；相同版本重用已驗證資料，來源更新時重新查驗。測試結果綁定程式版本與環境，避免未變更卻反覆執行相同完整檢查。</p>
+        <p><strong>底線：</strong>先跑針對性測試，再依規定執行必要驗收；不跳過、減弱或把未執行的測試記為通過。</p>
+      </article>
+      <article class="footnote">
+        <h3>4. 優先檢討主要成本模型，視工作難度改用較便宜模型</h3>
+        <p><strong>本期最大模型成本來源是 gpt-6-astra，佔已記錄模型成本的 45.53%</strong>；按 US$20,000 分攤約為 $9,106.97。這是 Pi 成本估值的分布，不是已核實的模型實收費用，也不能單憑份額認定模型單價最貴。</p>
+        <p><strong>優先檢查 gpt-6-astra 是否被用來做查找、進度彙整、格式修改等低風險工作。</strong>這些工作先試用較便宜模型，將較強模型留給需要複雜判斷的任務；不一律停用，也不對尚未量測的節省額作承諾。</p>
+        <p><strong>不要所有工作都使用高成本模型。</strong>將任務分級，低風險、規則明確的工作優先試用較便宜模型；只有遇到複雜判斷、品質不足或高風險時才升級。</p>
+        <ul>
+          <li><strong>較便宜模型優先：</strong>檔案／符號查找、既有資料加總、表格與格式整理、按明確規則批次修改、執行既定測試及彙整輸出。</li>
+          <li><strong>依實測結果選擇：</strong>一般功能實作、測試碼編寫、範圍明確的錯誤修正；比較品質與返工後再決定是否升級。</li>
+          <li><strong>保留較強模型：</strong>Figma／SA 規格衝突判斷、跨模組根因分析、架構設計，以及登入／安全／資料損失等高風險變更與審查。</li>
+        </ul>
+        <p>價格須以實際供應商計費方案核對，不只看模型名稱或 Pi 估值。本報告沒有同類任務的模型對照實驗，尚不能指定某型號必然更省，也不能估計可省下多少費用。</p>
+        <p><strong>驗證方式：</strong>比較同類任務的完成成本、正確率及返工率；低成本模型若反覆失敗，應及早升級，避免重試抵銷節省。</p>
+      </article>
+      <article class="footnote">
+        <h3>5. 減少派工與進度詢問的往返</h3>
+        <p>委派時寫清範圍、輸出與停止條件，保存可重用的結果摘要；依工作完成事件收集結果，避免頻繁詢問「目前進度」、重複派工或讓多個代理重做同一件事。</p>
+        <p><strong>底線：</strong>涉及高風險變更或必要獨立審查時，不為了減少往返而取消檢查；同時比較父代理與子代理的完整成本。</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="footnotes">
+    <article class="footnote">
+      <h2>計算口徑</h2>
+      <p>依 Pi 記錄的成本比例分攤使用者提供的總額，並非已核實帳單。假設本機紀錄代表完整用量；若包含團隊或其他工具用量，需重新計算。</p>
+    </article>
+    <article class="footnote">
+      <h2>如何分類工作費用</h2>
+      <p>用途由完整操作規則、語意規則與人工抽查判定，不是全部逐筆人工稽核。內容用途及動態腳本仍可能誤判，無法分拆的單輪費用另列。</p>
+    </article>
+  </section>
+
+  <p class="footer-note">本頁為離線 artifacts，非 App UI／Figma 設計稿。用途表與模型表分別對應 report.md 與 models.md；兩者是同一筆費用的不同視角，不可相加。</p>
+</div>
+<script>
+(function () {
+  function bindDetails(group) {
+    var toggle = document.getElementById(group + '-toggle');
+    var detailRows = document.querySelectorAll('[data-' + group + '-detail="1"]');
+    if (!toggle || !detailRows.length) return;
+    var controlledIds = [];
+    detailRows.forEach(function (row, index) {
+      row.id = group + '-detail-' + index;
+      controlledIds.push(row.id);
+    });
+    toggle.setAttribute('aria-controls', controlledIds.join(' '));
+    toggle.addEventListener('click', function () {
+      var willCollapse = toggle.getAttribute('aria-expanded') === 'true';
+      detailRows.forEach(function (row) {
+        row.classList.toggle('is-collapsed', willCollapse);
+      });
+      toggle.setAttribute('aria-expanded', willCollapse ? 'false' : 'true');
+      toggle.textContent = willCollapse
+        ? toggle.getAttribute('data-label-expand')
+        : toggle.getAttribute('data-label-collapse');
+    });
+  }
+  bindDetails('qa');
+  bindDetails('other');
+  var printBtn = document.getElementById('print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', function () { window.print(); });
+  }
+})();
+</script>
+</body>
+</html>
